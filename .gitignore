@@ -1,8 +1,12 @@
-# Python
+# Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
+
+# C extensions
 *.so
+
+# Distribution / packaging
 .Python
 build/
 develop-eggs/
@@ -16,50 +20,140 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Virtual Environment
-venv/
-ENV/
-env/
+# PyInstaller
+#  Usually these files are written by a python script, before PyInstaller builds the exe, so they don't need to be in the repo.
+*.manifest
+*.spec
 
-# Streamlit
-.streamlit/
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
 
-# IDE
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.tracker
+.pytest_cache/
+.hypothesis/
+.hypothesize/
 
-# OS
-.DS_Store
-Thumbs.db
+# Translations
+*.mo
+*.pot
 
-# Output files
-outputs/*.xlsx
-outputs/*.csv
-outputs/*.png
-outputs/*.jpg
-outputs/*.pdf
-
-# Logs
+# Django stuff:
 *.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
 
-# Temporary files
-*.tmp
-temp/
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+.pybuilder/
+target/
 
 # Jupyter Notebook
 .ipynb_checkpoints
 
-# Environment variables
-.env
+# IPython
+profile_default/
+ipython_config.py
 
-# Data files (optional - uncomment if you don't want to track data)
-# *.xlsx
-# *.xls
-# *.csv
+# pyenv
+.python-version
+
+# pipenv
+#   According to pypa/pipenv#598, it is recommended to include Pipfile.lock in version control.
+#   However, in case of collaboration, if everyone has different OS, it is safer to NOT include it.
+# Pipfile.lock
+
+# poetry
+#   Similar to Pipenv, see https://python-poetry.org/docs/basic-usage/#commit-your-poetrylock-file-to-version-control
+# poetry.lock
+
+# pdm
+#   Similar to Pipenv, see https://pdm.fming.dev/#usage/project-management/pdm-lock
+.pdm-python
+
+# PEP 582; used by e.g. github.com/frenzymadness/venvs
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# pytype static type analyzer
+.pytype/
+
+# Cython debug symbols
+cython_debug/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Other
+*.log
+*.tmp
+*.bak
+FORXIME2_PORTABLE/
+FORXIME2_ONEFILE_BUILD/
+launcher.log
