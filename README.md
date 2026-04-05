@@ -1,4 +1,4 @@
-# FORXIME/2 🐆📷
+# FORXIME/2 🐆📷 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.PLACEHOLDER.svg)](https://doi.org/10.5281/zenodo.PLACEHOLDER)
 
 **Plataforma Profesional de Análisis de Datos de Cámaras Trampa**
 
