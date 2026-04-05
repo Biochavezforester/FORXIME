@@ -8,6 +8,7 @@ title: "FORXIME/2: Plataforma Profesional de Análisis de Datos de Cámaras Tram
 version: 2.0.0
 date-released: 2024-04-05
 url: "https://github.com/Biochavezforester/FORXIME2"
+doi: "10.5281/zenodo.19425714"
 license: MIT
 keywords:
   - camera traps
