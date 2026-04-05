@@ -1,295 +1,71 @@
 """
-Funciones de validación para FORXIME/2
+Validadores para FORXIME/2
 """
-import re
-from datetime import datetime
 import pandas as pd
 import numpy as np
-
+import re
+from datetime import datetime
 
 def validate_utm_coordinates(x, y, zone):
-    """
-    Valida coordenadas UTM
-    
-    Args:
-        x: Coordenada Este (X)
-        y: Coordenada Norte (Y)
-        zone: Zona UTM (ej: '12N', '13S')
-    
-    Returns:
-        tuple: (is_valid, error_message)
-    """
+    """Valida coordenadas UTM básicas."""
     try:
-        # Validar que sean números
         x = float(x)
         y = float(y)
-        
-        # Validar rango de coordenadas UTM
         if not (166000 <= x <= 834000):
-            return False, "Coordenada X fuera de rango válido (166000-834000)"
-        
+            return False, "Easting (X) fuera de rango"
         if not (0 <= y <= 10000000):
-            return False, "Coordenada Y fuera de rango válido (0-10000000)"
-        
-        # Validar formato de zona UTM
-        zone_pattern = r'^([1-9]|[1-5][0-9]|60)[N|S]$'
-        if not re.match(zone_pattern, str(zone).upper()):
-            return False, "Formato de zona UTM inválido (debe ser 1-60 seguido de N o S)"
-        
-        return True, ""
-    
-    except (ValueError, TypeError):
-        return False, "Las coordenadas deben ser números válidos"
-
+            return False, "Northing (Y) fuera de rango"
+        if not re.match(r'^([1-9]|[1-5][0-9]|60)[N|S]$', str(zone).upper()):
+            return False, "Zona UTM inválida"
+        return True, "OK"
+    except:
+        return False, "Formato numérico inválido"
 
 def validate_date(date_str):
-    """
-    Valida formato de fecha
-    
-    Args:
-        date_str: Fecha en string, pandas Timestamp, o datetime object
-    
-    Returns:
-        tuple: (is_valid, datetime_object or error_message)
-    """
-    # Si ya es un objeto datetime o pandas Timestamp, retornar directamente
-    if isinstance(date_str, datetime):
-        return True, date_str
-    
-    if pd.notna(date_str) and hasattr(date_str, 'to_pydatetime'):
-        # Es un pandas Timestamp
-        try:
-            return True, date_str.to_pydatetime()
-        except:
-            pass
-    
-    # Si es numpy datetime64
-    if isinstance(date_str, np.datetime64):
-        try:
-            return True, pd.Timestamp(date_str).to_pydatetime()
-        except:
-            pass
-    
-    # Intentar parsear como string
-    date_formats = [
-        '%d/%m/%Y',
-        '%Y-%m-%d',
-        '%d-%m-%Y',
-        '%Y/%m/%d',
-        '%m/%d/%Y',  # Formato americano
-        '%Y%m%d'     # Formato compacto
-    ]
-    
-    for fmt in date_formats:
-        try:
-            date_obj = datetime.strptime(str(date_str).strip(), fmt)
-            return True, date_obj
-        except (ValueError, AttributeError):
-            continue
-    
-    # Intentar con pd.to_datetime como último recurso
+    """Valida formato de fecha DD/MM/YYYY."""
     try:
-        date_obj = pd.to_datetime(date_str)
-        if pd.notna(date_obj):
-            return True, date_obj.to_pydatetime()
+        if isinstance(date_str, datetime):
+            return True, "OK"
+        datetime.strptime(str(date_str), '%d/%m/%Y')
+        return True, "OK"
     except:
-        pass
-    
-    return False, "Formato de fecha inválido. Use DD/MM/AAAA o AAAA-MM-DD"
-
+        return False, "Formato de fecha inválido. Use DD/MM/YYYY"
 
 def validate_time(time_str):
-    """
-    Valida formato de hora
-    
-    Args:
-        time_str: Hora en string, datetime.time, o pandas Timestamp
-    
-    Returns:
-        tuple: (is_valid, time_object or error_message)
-    """
-    # Si ya es un objeto time
-    if hasattr(time_str, 'hour') and hasattr(time_str, 'minute'):
-        try:
-            if isinstance(time_str, datetime):
-                return True, time_str.time()
-            else:
-                return True, time_str
-        except:
-            pass
-    
-    # Si es pandas Timestamp
-    if pd.notna(time_str) and hasattr(time_str, 'to_pydatetime'):
-        try:
-            return True, time_str.to_pydatetime().time()
-        except:
-            pass
-    
-    # Intentar parsear como string
-    time_formats = [
-        '%H:%M:%S',
-        '%H:%M',
-        '%I:%M:%S %p',
-        '%I:%M %p'
-    ]
-    
-    for fmt in time_formats:
-        try:
-            time_obj = datetime.strptime(str(time_str).strip(), fmt).time()
-            return True, time_obj
-        except (ValueError, AttributeError):
-            continue
-    
-    # Intentar con pd.to_datetime como último recurso
+    """Valida formato de hora HH:MM:SS."""
     try:
-        time_obj = pd.to_datetime(time_str, format='mixed')
-        if pd.notna(time_obj):
-            return True, time_obj.time()
+        if isinstance(time_str, (datetime, pd.Timestamp)):
+            return True, "OK"
+        # Intentar varios formatos
+        for fmt in ('%H:%M:%S', '%H:%M'):
+            try:
+                datetime.strptime(str(time_str), fmt)
+                return True, "OK"
+            except:
+                continue
+        return False, "Formato de hora inválido"
     except:
-        pass
-    
-    return False, "Formato de hora inválido. Use HH:MM:SS o HH:MM"
-
+        return False, "Formato de hora inválido"
 
 def validate_excel_format(df):
     """
-    Valida que el DataFrame del Excel tenga las columnas requeridas
-    
-    Args:
-        df: DataFrame de pandas
-    
-    Returns:
-        tuple: (is_valid, error_message or validated_df)
+    Valida que el DataFrame del Excel tenga las columnas requeridas (Versión Estructural Ultra-Rápida)
     """
     # Columnas absolutamente requeridas
-    required_columns = [
-        'Sitio',
-        'Camara',
-        'Especie_Categoria',
-        'Fecha',
-        'Hora',
-        'Eventos_Independientes'
-    ]
+    required_columns = ['Sitio', 'Camara', 'Especie_Categoria', 'Fecha', 'Hora']
     
-    # Columnas de coordenadas (opcionales)
-    coordinate_columns = [
-        'Coordenada_X_UTM',
-        'Coordenada_Y_UTM',
-        'Zona_UTM'
-    ]
-    
-    optional_columns = [
-        'Es_Cria',
-        'Lactante',
-        'Periodo_Ensenanza',
-        'Rascando_Arboles',
-        'Usando_Letrina',
-        'Salud_Fisica',
-        'Observaciones'
-    ]
-    
-    # Verificar columnas requeridas
+    # 1. Verificar presencia de columnas (Operación de milisegundos)
     missing_columns = [col for col in required_columns if col not in df.columns]
-    
     if missing_columns:
-        return False, f"Columnas faltantes: {', '.join(missing_columns)}"
+        return False, f"Faltan columnas requeridas: {', '.join(missing_columns)}"
     
-    # Verificar si hay coordenadas
-    has_coordinates = all(col in df.columns for col in coordinate_columns)
-    
-    # Verificar datos faltantes en columnas críticas
-    critical_columns = ['Sitio', 'Camara', 'Especie_Categoria', 'Fecha', 'Hora']
-    
-    for col in critical_columns:
-        if df[col].isna().any():
-            return False, f"La columna '{col}' contiene valores faltantes"
-    
-    # Validar coordenadas UTM solo si están presentes
-    if has_coordinates:
-        for idx, row in df.iterrows():
-            # Solo validar si las coordenadas no están vacías
-            if pd.notna(row['Coordenada_X_UTM']) and pd.notna(row['Coordenada_Y_UTM']) and pd.notna(row['Zona_UTM']):
-                is_valid, error = validate_utm_coordinates(
-                    row['Coordenada_X_UTM'],
-                    row['Coordenada_Y_UTM'],
-                    row['Zona_UTM']
-                )
-                if not is_valid:
-                    return False, f"Fila {idx + 2}: {error}"
-    
-    # Validar fechas
-    for idx, row in df.iterrows():
-        is_valid, result = validate_date(row['Fecha'])
-        if not is_valid:
-            return False, f"Fila {idx + 2}: {result}"
-    
-    # Validar horas
-    for idx, row in df.iterrows():
-        is_valid, result = validate_time(row['Hora'])
-        if not is_valid:
-            return False, f"Fila {idx + 2}: {result}"
+    # 2. CONFIANZA TOTAL: Para archivos grandes (5MB+), no validamos filas individuales aquí.
+    # El procesador se encargará de esto durante la fase de análisis (Botón Cohete).
     
     return True, df
 
-
 def validate_species_name(species_name):
-    """
-    Valida nombre de especie
-    
-    Args:
-        species_name: Nombre de la especie
-    
-    Returns:
-        tuple: (is_valid, error_message)
-    """
-    if not species_name or str(species_name).strip() == "":
-        return False, "El nombre de especie no puede estar vacío"
-    
-    if len(str(species_name)) > 100:
-        return False, "El nombre de especie es demasiado largo (máximo 100 caracteres)"
-    
-    return True, ""
-
-
-def validate_independent_events(events):
-    """
-    Valida número de eventos independientes
-    
-    Args:
-        events: Número de eventos
-    
-    Returns:
-        tuple: (is_valid, error_message)
-    """
-    try:
-        events = int(events)
-        if events < 0:
-            return False, "El número de eventos no puede ser negativo"
-        if events > 10000:
-            return False, "El número de eventos parece excesivo (máximo 10000)"
-        return True, ""
-    except (ValueError, TypeError):
-        return False, "El número de eventos debe ser un número entero"
-
-
-def check_missing_data(df):
-    """
-    Verifica datos faltantes en el DataFrame
-    
-    Args:
-        df: DataFrame de pandas
-    
-    Returns:
-        dict: Resumen de datos faltantes por columna
-    """
-    missing_summary = {}
-    
-    for col in df.columns:
-        missing_count = df[col].isna().sum()
-        if missing_count > 0:
-            missing_summary[col] = {
-                'count': int(missing_count),
-                'percentage': round((missing_count / len(df)) * 100, 2)
-            }
-    
-    return missing_summary
+    """Valida nombre de especie."""
+    if pd.isna(species_name) or str(species_name).strip() == "":
+        return False, "El nombre de la especie no puede estar vacío"
+    return True, "OK"

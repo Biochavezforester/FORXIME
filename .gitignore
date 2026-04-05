@@ -157,3 +157,16 @@ Thumbs.db
 FORXIME2_PORTABLE/
 FORXIME2_ONEFILE_BUILD/
 launcher.log
+
+# FORXIME/2 Specific Heavy Files and Folders
+PORTABLE.zip
+PORTABLE/
+INSTALADORHABIL/
+WEB/
+venv/
+.env
+.streamlit/config.toml
+*.xlsx
+*.csv
+!template_*.xlsx
+!example_*.xlsx

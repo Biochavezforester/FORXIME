@@ -220,38 +220,46 @@ def calculate_study_area(cameras_df):
 
 def add_latlon_columns(df):
     """
-    Agrega columnas de latitud y longitud al DataFrame
-    
-    Args:
-        df: DataFrame con coordenadas UTM
-    
-    Returns:
-        DataFrame: DataFrame con columnas 'Latitud' y 'Longitud' agregadas
+    Agrega columnas de latitud y longitud al DataFrame de forma optimizada.
+    Mapea solo coordenadas únicas para evitar miles de cálculos redundantes.
     """
     df = df.copy()
     
+    # Columnas necesarias
+    if not all(col in df.columns for col in ['Coordenada_X_UTM', 'Coordenada_Y_UTM', 'Zona_UTM']):
+        return df
+        
+    # 1. Identificar combinaciones únicas de coordenadas (Súper rápido)
+    unique_coords = df[['Coordenada_X_UTM', 'Coordenada_Y_UTM', 'Zona_UTM']].drop_duplicates().copy()
+    
+    # 2. Calcular Lat/Lon solo para los únicos (Ej: de 50,000 pasamos a 50 cálculos)
     lats = []
     lons = []
     
-    for idx, row in df.iterrows():
+    import utm
+    for _, row in unique_coords.iterrows():
         try:
-            zone_number = int(str(row['Zona_UTM'])[:-1])
-            zone_letter = str(row['Zona_UTM'])[-1]
+            zone_str = str(row['Zona_UTM']).strip()
+            zone_number = int(zone_str[:-1])
+            zone_letter = zone_str[-1].upper()
+            northern = zone_letter >= 'N'
             
-            lat, lon = utm_to_latlon(
-                row['Coordenada_X_UTM'],
-                row['Coordenada_Y_UTM'],
-                zone_number,
-                zone_letter
+            lat, lon = utm.to_latlon(
+                row['Coordenada_X_UTM'], 
+                row['Coordenada_Y_UTM'], 
+                zone_number, 
+                northern=northern
             )
-            
             lats.append(lat)
             lons.append(lon)
         except:
             lats.append(None)
             lons.append(None)
+            
+    unique_coords['Latitud'] = lats
+    unique_coords['Longitud'] = lons
     
-    df['Latitud'] = lats
-    df['Longitud'] = lons
+    # 3. Mapear de vuelta al DataFrame original (Operación vectorial instantánea)
+    df = df.merge(unique_coords, on=['Coordenada_X_UTM', 'Coordenada_Y_UTM', 'Zona_UTM'], how='left')
     
     return df

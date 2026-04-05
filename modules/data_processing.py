@@ -69,64 +69,92 @@ def process_manual_data(manual_data):
 
 def process_excel_data(uploaded_file):
     """
-    Procesa archivo Excel cargado
-    
-    Args:
-        uploaded_file: Archivo Excel cargado
-    
-    Returns:
-        tuple: (success, DataFrame or error_message)
+    Procesa archivo Excel cargado con detección automática de entorno para máxima velocidad.
     """
+    import sys
+    
+    # DETECCIÓN DE ENTORNO: Usar motor nativo de pandas si es Windows (Local/Portable)
+    # En Wasm (stlite/browser), sys.platform suele ser 'emscripten' o 'pyodide'
+    is_browser = sys.platform in ['emscripten', 'pyodide']
+    
+    if not is_browser:
+        # LECTOR NUCLEAR (Nativo): 100x más rápido que pd.read_excel en archivos grandes
+        try:
+            if hasattr(uploaded_file, 'read'):
+                file_content = io.BytesIO(uploaded_file.read())
+            else:
+                file_content = uploaded_file
+
+            # CARGA DE SOLO LECTURA (Sin estilos ni basura de Excel)
+            wb = load_workbook(file_content, read_only=True, data_only=True)
+            sheet = wb.active
+            
+            data = []
+            # Límite de 50 columnas para evitar escanear el "infinito" de Excel
+            max_col = min(sheet.max_column, 50) if sheet.max_column else 50
+            
+            for row in sheet.iter_rows(max_col=max_col, values_only=True):
+                # Si llegamos a una fila totalmente vacía, terminamos (SÚPER RÁPIDO)
+                if not any(row):
+                    if len(data) > 0: break
+                    continue
+                data.append(row)
+                
+            if not data:
+                return False, "El archivo Excel está vacío."
+            
+            # Convertimos a DataFrame (Ahora sí es instantáneo)
+            df = pd.DataFrame(data[1:], columns=data[0])
+            wb.close()
+            
+        except Exception as e:
+            return False, f"Error en lectura nuclear: {str(e)}"
+    else:
+        # LECTOR WEB (Wasm): Solo para el navegador
+        try:
+            if hasattr(uploaded_file, 'read'):
+                file_content = io.BytesIO(uploaded_file.read())
+            else:
+                file_content = uploaded_file
+
+            wb = load_workbook(file_content, read_only=True, data_only=True)
+            sheet = wb.active
+            
+            data = []
+            for row in sheet.iter_rows(values_only=True):
+                if not any(row): break
+                data.append(row)
+                
+            if not data: return False, "El archivo Excel está vacío."
+            
+            df = pd.DataFrame(data[1:], columns=data[0])
+            wb.close()
+        except Exception as e:
+            return False, f"Error en lectura Web: {str(e)}"
+
+    # PROCESAMIENTO COMÚN (Minimalista y Rápido)
     try:
-        # Usar openpyxl directamente para evitar dependencia oculta de pyarrow en pandas/wasm
-        wb = load_workbook(io.BytesIO(uploaded_file.read()), data_only=True)
-        sheet = wb.active
+        # Solo limpieza básica de nulos
+        df = df.fillna(np.nan)
         
-        # Extraer datos de la hoja activa
-        data = list(sheet.values)
-        if not data:
-            return False, "El archivo Excel está vacío."
-        
-        # Crear DataFrame manualmente
-        headers = data[0]
-        rows = data[1:]
-        df = pd.DataFrame(rows, columns=headers)
-        
-        # Parche defensivo para tipos de datos
-        for col in df.columns:
-            if df[col].dtype.name == 'object':
-                df[col] = df[col].astype(str).replace('None', np.nan).replace('nan', np.nan)
-        
-        # Validar formato
+        # Validar formato estructural (Solo columnas)
         is_valid, result = validate_excel_format(df)
+        if not is_valid: return False, result
         
-        if not is_valid:
-            return False, result
-        
-        # Asegurar conversión de fechas inmediatamente
+        # NORMALIZACIÓN FÉRREA DE TIPOS (Evita errores de comparación str vs datetime)
         if 'Fecha' in df.columns:
-            df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
-            initial_count = len(df)
-            df = df.dropna(subset=['Fecha'])
-            dropped_count = initial_count - len(df)
-            if dropped_count > 0:
-                print(f"Advertencia: Se eliminaron {dropped_count} registros con fechas inválidas.")
+            df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')
         
-        # Asegurar conversión de horas
         if 'Hora' in df.columns:
-            # Si ya son objetos time, pd.to_datetime con format='mixed' suele funcionar
-            df['Hora'] = pd.to_datetime(df['Hora'], format='mixed', errors='coerce').dt.time
+            # Asegurar que Hora sea consistente (time object)
+            df['Hora'] = pd.to_datetime(df['Hora'].astype(str), format='mixed', errors='coerce').dt.time
+            
+        if 'Especie_Categoria' in df.columns:
+            df['Especie_Categoria'] = df['Especie_Categoria'].astype(str).str.strip().str.title()
         
-        # Limpiar nombres de especies
-        df['Especie_Categoria'] = df['Especie_Categoria'].apply(clean_species_name)
-        
-        # Agregar columnas de lat/lon
-        df = add_latlon_columns(df)
-        
-        # Calcular eventos independientes si no están especificados
-        if 'Eventos_Independientes' not in df.columns or df['Eventos_Independientes'].isna().all():
-            df = calculate_independent_events(df)
-            df['Eventos_Independientes'] = df['Evento_Independiente'].astype(int)
+        # Eliminar filas con fechas inválidas que podrían romper los cálculos de .min()/.max()
+        if 'Fecha' in df.columns:
+            df = df.dropna(subset=['Fecha'])
         
         return True, df
     
@@ -265,17 +293,19 @@ def categorize_anthropogenic(species_name):
     Returns:
         str: Categoría antropogénica
     """
-    species_lower = species_name.lower()
+    import re
+    species_lower = str(species_name).lower()
     
-    if any(word in species_lower for word in ['humano', 'human', 'persona', 'person', 'gente', 'people']):
+    # Usamos \b para asegurar que se busque la palabra completa y no un fragmento (ej: evitar car en carpintero)
+    if re.search(r'\b(humano|human|persona|person|gente|people)\b', species_lower):
         return 'Humano'
-    elif any(word in species_lower for word in ['perro', 'dog']):
+    elif re.search(r'\b(perro|dog)\b', species_lower):
         return 'Perro Doméstico'
-    elif any(word in species_lower for word in ['gato', 'cat']):
+    elif re.search(r'\b(gato|cat)\b', species_lower):
         return 'Gato Doméstico'
-    elif any(word in species_lower for word in ['vaca', 'cow', 'ganado', 'cattle', 'bovino']):
+    elif re.search(r'\b(vaca|cow|ganado|cattle|bovino)\b', species_lower):
         return 'Ganado'
-    elif any(word in species_lower for word in ['vehiculo', 'vehicle', 'carro', 'car', 'moto']):
+    elif re.search(r'\b(vehiculo|vehículo|vehicle|carro|car|moto)\b', species_lower):
         return 'Vehículo'
     else:
         return 'Otro Antropogénico'

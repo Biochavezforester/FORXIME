@@ -300,19 +300,37 @@ elif page == t('menu_process'):
             import time
             
             # Determinar total de pasos
-            total_steps = 14  # Solapamiento temporal se calcula bajo demanda en Resultados
+            total_steps = 16  # Preparación + 14 Análisis + Finalización
             
             current_step = 0
             step_times = []  # Para calcular tiempo restante
             start_time = time.time()
             
             try:
-                # Paso 1: Agrupar sitios
+                # Paso 0: Preparación de datos (Geospatial y Eventos)
                 step_start = time.time()
+                current_step += 1
+                status_text.text(f"⏳ Paso {current_step}/{total_steps}: Convirtiendo coordenadas y calculando eventos...")
+                
+                # Conversión de Fechas y Horas
+                df = st.session_state.data.copy()
+                if 'Fecha' in df.columns:
+                    df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')
+                    df = df.dropna(subset=['Fecha'])
+                if 'Hora' in df.columns:
+                    df['Hora'] = pd.to_datetime(df['Hora'].astype(str), format='mixed', errors='coerce').dt.time
+                
+                # Coordenadas y Eventos
+                from utils import geospatial, helpers
+                df = geospatial.add_latlon_columns(df)
+                df = helpers.calculate_independent_events(df)
+                df['Eventos_Independientes'] = df['Evento_Independiente'].astype(int)
+                
+                # Paso 1: Agrupar sitios
                 current_step += 1
                 progress_bar.progress(current_step / total_steps)
                 status_text.text(f"⏳ Paso {current_step}/{total_steps}: Agrupando sitios por proximidad...")
-                df = data_processing.group_sites(st.session_state.data, max_distance=10)
+                df = data_processing.group_sites(df, max_distance=10)
                 step_times.append(time.time() - step_start)
                 
                 # Paso 2: Filtrar fauna silvestre

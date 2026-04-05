@@ -61,27 +61,22 @@ def calculate_independent_events(df, time_threshold=30):
     df = df.copy()
     df = df.sort_values(['Camara', 'Especie_Categoria', 'Fecha', 'Hora'])
     
-    # Combinar fecha y hora
-    df['DateTime'] = pd.to_datetime(df['Fecha'].astype(str) + ' ' + df['Hora'].astype(str))
+    # Combinar fecha y hora de forma eficiente
+    df['DateTime'] = pd.to_datetime(df['Fecha'].astype(str) + ' ' + df['Hora'].astype(str), errors='coerce')
+    df = df.dropna(subset=['DateTime']).sort_values(['Camara', 'Especie_Categoria', 'DateTime'])
     
-    # Marcar eventos independientes
-    df['Evento_Independiente'] = False
+    # Calcular diferencia de tiempo entre registros consecutivos del mismo grupo (Cámara + Especie)
+    # diff() devuelve un Timedelta que comparamos directamente
+    df['Time_Diff'] = df.groupby(['Camara', 'Especie_Categoria'])['DateTime'].diff()
     
-    for (camera, species), group in df.groupby(['Camara', 'Especie_Categoria']):
-        group = group.sort_values('DateTime')
-        indices = group.index.tolist()
-        
-        if len(indices) > 0:
-            df.loc[indices[0], 'Evento_Independiente'] = True
-        
-        for i in range(1, len(indices)):
-            current_time = df.loc[indices[i], 'DateTime']
-            previous_time = df.loc[indices[i-1], 'DateTime']
-            
-            time_diff = (current_time - previous_time).total_seconds() / 60  # en minutos
-            
-            if time_diff >= time_threshold:
-                df.loc[indices[i], 'Evento_Independiente'] = True
+    # Un evento es independiente si:
+    # 1. Es el primero del grupo (Time_Diff es NaN)
+    # 2. La diferencia con el anterior es mayor o igual al umbral
+    threshold = pd.Timedelta(minutes=time_threshold)
+    df['Evento_Independiente'] = df['Time_Diff'].isna() | (df['Time_Diff'] >= threshold)
+    
+    # Limpiar columna temporal
+    df = df.drop(columns=['Time_Diff'])
     
     return df
 

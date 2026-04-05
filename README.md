@@ -226,6 +226,16 @@ Explora las pestañas de resultados:
 
 - Mide disimilitud en composición de especies entre sitios
 - Valores: 0 (idénticos) a 1 (completamente diferentes)
+---
+
+## 🎓 Cómo Citar
+
+Si utilizas FORXIME/2 en tu investigación o informes técnicos, por favor cita el software de la siguiente manera:
+
+**Formato sugerido:**
+> Chavez Gurrola, E. E. (2024). FORXIME/2: Plataforma Profesional de Análisis de Datos de Cámaras Trampa (Versión 2.0.0) [Software]. Disponible en <https://github.com/tu-usuario/FORXIME2>
+
+Este repositorio incluye un archivo `CITATION.cff` que permite a gestores de referencias (como Zotero o Mendeley) capturar los metadatos automáticamente. En GitHub, puedes usar el botón **"Cite this repository"** en la barra lateral derecha.
 
 ---
 
