@@ -39,4 +39,8 @@ The software has been in active development and testing since January 2026, with
 
 `FORXIME/2` occupies a niche between low-level programming libraries and rigid standalone applications. Unlike general-purpose data tools, it is specifically tailored for the "camera trap to ecological report" pipeline. It complements existing software by providing a high-level orchestration layer that makes advanced statistical methods accessible to a wider range of researchers without compromising scientific rigor.
 
-## References
+## AI Usage Disclosure
+
+The creation of the scientific documentation (`paper.md`), the automated test suite (`tests/`), and the community guidelines (`CONTRIBUTING.md`) for this project was assisted by Antigravity (a version of Gemini 3 Flash by Google DeepMind). The AI was used for drafting the paper text, refactoring the statistical methods for modularity, and generating the test scaffolding with Pytest. All AI-assisted outputs and mathematical calculations were thoroughly reviewed, validated, and edited by the human author (Erick Elio Chavez Gurrola), who made all core architectural and design decisions.
+
+# References
