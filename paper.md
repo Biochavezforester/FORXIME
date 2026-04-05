@@ -29,9 +29,11 @@ Researchers in mammalogy frequently face challenges in transitioning from raw ca
 `FORXIME/2` addresses these needs by:
 
 1. **Accelerating Data Processing**: Automatically handling data grouping, UTM coordinate transformations, and effort calculations using standardized data structures [@McKinney2010].
-2. **Integrating Multiple Analysis Modules**: Combining biodiversity indices [@Shannon1948; @Simpson1949; @Pielou1966], temporal overlap analysis [@Ridout2009], and occupancy estimation [@Royle2003; @MacKenzie2002] into a single workflow.
-3. **Automated Ecological Interpretation**: Providing natural language explanations of statistical results, helping researchers translate numbers into biological insights and management recommendations.
-4. **Enhanced Spatial Context**: Integrating with external APIs (OpenStreetMap, Elevation APIs) to automatically extract environmental variables like distance to rivers or human settlements, reducing manual GIS work.
+2. **Integrating Multiple Analysis Modules**: Combining biodiversity indices [@Shannon1948; @Simpson1949; @Pielou1966], temporal overlap and activity peak analysis [@Ridout2009; @Rowcliffe2014], and occupancy estimation [@Royle2003; @MacKenzie2002] into a single workflow.
+3. **Multivariate and Spatial Analysis**: Implementing community dissimilarity measures based on the Bray-Curtis index [@BrayCurtis1957] and hierarchical clustering for dendrogram generation [@Legendre1998], utilizing `scikit-learn` [@Pedregosa2011] for efficient computing.
+4. **Conservation Compliance**: Automatically cross-referencing identified species with risk categories defined in the Mexican Official Standard `NOM-059-SEMARNAT-2010` [@NOM059], facilitating legal and management reporting.
+5. **Automated Ecological Interpretation**: Providing natural language explanations of statistical results, helping researchers translate numbers into biological insights and management recommendations.
+6. **Enhanced Spatial Context**: Integrating with external APIs (OpenStreetMap, Elevation APIs) to automatically extract environmental variables like distance to rivers or human settlements, reducing manual GIS work.
 
 The software is built upon the robust Python scientific stack, leveraging `NumPy` [@Harris2020] and `SciPy` [@Virtanen2020] for high-performance numerical computing. It has been in active development and testing since January 2026, with a focus on delivering a stable, professional environment for biologists working in high-pressure conservation scenarios.
 
