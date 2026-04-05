@@ -254,6 +254,21 @@ Este repositorio incluye un archivo `CITATION.cff` que permite a gestores de ref
 
 ---
 
+## 🔬 Calidad de Software y Ciencia Abierta
+
+Este proyecto cumple con los estándares de **The Journal of Open Source Software (JOSS)**:
+
+- **Licencia OSI**: Código abierto bajo Licencia MIT.
+- **Borrador del Artículo**: Consultar [paper.md](paper.md) para la descripción científica (mastozoología).
+- **Pruebas Automatizadas**: Contiene una suite de pruebas en el directorio `tests/` para verificar la precisión de los cálculos bioestadísticos.
+
+Para ejecutar las pruebas:
+```bash
+pytest tests/
+```
+
+---
+
 ## 🤝 Contribuciones
 
 Las contribuciones son bienvenidas. Por favor:
