@@ -12,7 +12,7 @@ authors:
     orcid: 0009-0007-7054-6999
     affiliation: 1
 affiliations:
-  - name: Independent Researcher, Biochavez Forester, Mexico
+  - name: "División de Estudios de Posgrado e Investigación, Instituto Tecnológico de El Salto, Mesa del Tecnológico SN, Forestal, CP. 34942. El Salto, Durango, México"
     index: 1
 date: 5 April 2026
 bibliography: paper.bib
