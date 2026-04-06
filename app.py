@@ -348,7 +348,9 @@ elif page == t('menu_process'):
                 else:
                     status_text.text(f"⏳ Paso {current_step}/{total_steps}: Filtrando fauna silvestre...")
                 
-                wildlife_df = data_processing.filter_wildlife_only(df)
+                # Se desactiva el filtrado automático por solicitud del usuario
+                # Ahora wildlife_df contiene todos los datos y la exclusión se hace manual en el panel de resultados
+                wildlife_df = df.copy()
                 step_times.append(time.time() - step_start)
                 
                 st.session_state.processed_data = df
@@ -1643,23 +1645,6 @@ elif page == t('menu_instructions'):
     - Las interpretaciones están en el idioma seleccionado
     
     
-    ---
-    
-    ## ❓ Preguntas Frecuentes
-    
-    **¿Qué son eventos independientes?**
-    > Fotografías de la misma especie en la misma cámara separadas por más de 30 minutos.
-    
-    **¿Qué es el modelo Royle-Nichols?**
-    > Un modelo estadístico que estima ocupación y abundancia relativa considerando detección imperfecta.
-    
-    **¿Cómo interpretar el coeficiente de solapamiento?**
-    > Valores cercanos a 1 indican alto solapamiento temporal, cercanos a 0 indican segregación temporal.
-    
-    **¿Qué hacer si mis coordenadas no son UTM?**
-    > Usa un conversor en línea para transformar tus coordenadas geográficas a UTM.
-    
-    ---
     
     ## 📧 Soporte
     

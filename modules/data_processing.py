@@ -273,7 +273,9 @@ def identify_non_wildlife(df):
     ]
     
     # Crear máscara para identificar no-fauna
-    mask = df['Especie_Categoria'].str.lower().str.contains('|'.join(non_wildlife_keywords), na=False)
+    # Usar \b para coincidir con la palabra completa y evitar falsos positivos (ej: 'can' en 'canario')
+    keywords_regex = r'\b(' + '|'.join(non_wildlife_keywords).replace('|', r'|') + r')\b'
+    mask = df['Especie_Categoria'].str.lower().str.contains(keywords_regex, regex=True, na=False)
     
     non_wildlife_df = df[mask].copy()
     non_wildlife_df['Categoria_Antropogenica'] = non_wildlife_df['Especie_Categoria'].apply(

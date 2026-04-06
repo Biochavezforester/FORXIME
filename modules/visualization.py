@@ -14,20 +14,23 @@ import io
 import base64
 
 
-def create_abundance_bar_chart(df, top_n=15):
+def create_abundance_bar_chart(df, top_n=None):
     """
     Crea gráfica de barras de abundancia por especie
     
     Args:
         df: DataFrame con datos
-        top_n: Número de especies a mostrar
+        top_n: Número de especies a mostrar (None para mostrar todas)
     
     Returns:
         plotly figure
     """
     abundance = df.groupby('Especie_Categoria')['Eventos_Independientes'].sum().sort_values(ascending=False)
     
-    top_species = abundance.head(top_n)
+    if top_n is not None:
+        top_species = abundance.head(top_n)
+    else:
+        top_species = abundance
     
     fig = go.Figure(data=[
         go.Bar(
@@ -46,10 +49,10 @@ def create_abundance_bar_chart(df, top_n=15):
     ])
     
     fig.update_layout(
-        title=f'Top {top_n} Especies por Abundancia',
+        title=f'Abundancia de Especies' + (f' (Top {top_n})' if top_n else ''),
         xaxis_title='Número de Eventos Independientes',
         yaxis_title='Especie',
-        height=max(400, top_n * 30),
+        height=max(400, len(top_species) * 30),
         template='plotly_white',
         font=dict(size=12)
     )
@@ -359,18 +362,21 @@ def create_study_area_map(df):
     return m
 
 
-def create_rai_chart(rai_df, top_n=15):
+def create_rai_chart(rai_df, top_n=None):
     """
     Crea gráfica de Índice de Abundancia Relativa
     
     Args:
         rai_df: DataFrame con RAI
-        top_n: Número de especies a mostrar
+        top_n: Número de especies a mostrar (None para todas)
     
     Returns:
         plotly figure
     """
-    top_rai = rai_df.head(top_n)
+    if top_n is not None:
+        top_rai = rai_df.head(top_n)
+    else:
+        top_rai = rai_df
     
     fig = go.Figure(data=[
         go.Bar(
@@ -389,10 +395,10 @@ def create_rai_chart(rai_df, top_n=15):
     ])
     
     fig.update_layout(
-        title=f'Índice de Abundancia Relativa (RAI) - Top {top_n}',
+        title=f'Índice de Abundancia Relativa (RAI)' + (f' - Top {top_n}' if top_n else ''),
         xaxis_title='RAI (eventos por 100 días-trampa)',
         yaxis_title='Especie',
-        height=max(400, top_n * 30),
+        height=max(400, len(top_rai) * 30),
         template='plotly_white'
     )
     
@@ -563,13 +569,13 @@ def create_occupancy_comparison_chart(occupancy_df, royle_nichols_results):
     return fig
 
 
-def create_lambda_bar_chart(royle_nichols_results, top_n=15):
+def create_lambda_bar_chart(royle_nichols_results, top_n=None):
     """
     Crea gráfica de barras de abundancia relativa (λ) del modelo Royle-Nichols
     
     Args:
         royle_nichols_results: Diccionario con resultados de Royle-Nichols
-        top_n: Número de especies a mostrar
+        top_n: Número de especies a mostrar (None para todas)
     
     Returns:
         plotly figure
@@ -597,7 +603,10 @@ def create_lambda_bar_chart(royle_nichols_results, top_n=15):
         fig.update_layout(height=400)
         return fig
     
-    lambda_df = pd.DataFrame(lambda_data).sort_values('Lambda', ascending=False).head(top_n)
+    if top_n is not None:
+        lambda_df = pd.DataFrame(lambda_data).sort_values('Lambda', ascending=False).head(top_n)
+    else:
+        lambda_df = pd.DataFrame(lambda_data).sort_values('Lambda', ascending=False)
     
     fig = go.Figure(data=[
         go.Bar(
@@ -616,7 +625,7 @@ def create_lambda_bar_chart(royle_nichols_results, top_n=15):
     ])
     
     fig.update_layout(
-        title=f'Abundancia Relativa (λ) - Modelo Royle-Nichols - Top {min(top_n, len(lambda_df))}',
+        title=f'Abundancia Relativa (λ) - Modelo Royle-Nichols' + (f' - Top {len(lambda_df)}' if top_n else ''),
         xaxis_title='Abundancia Relativa (λ)',
         yaxis_title='Especie',
         height=max(400, len(lambda_df) * 30),
@@ -627,13 +636,13 @@ def create_lambda_bar_chart(royle_nichols_results, top_n=15):
     return fig
 
 
-def create_detection_probability_chart(royle_nichols_results, top_n=15):
+def create_detection_probability_chart(royle_nichols_results, top_n=None):
     """
     Crea gráfica de probabilidades de detección del modelo Royle-Nichols
     
     Args:
         royle_nichols_results: Diccionario con resultados de Royle-Nichols
-        top_n: Número de especies a mostrar
+        top_n: Número de especies a mostrar (None para todas)
     
     Returns:
         plotly figure
@@ -661,7 +670,10 @@ def create_detection_probability_chart(royle_nichols_results, top_n=15):
         fig.update_layout(height=400)
         return fig
     
-    detection_df = pd.DataFrame(detection_data).sort_values('P_detection', ascending=False).head(top_n)
+    if top_n is not None:
+        detection_df = pd.DataFrame(detection_data).sort_values('P_detection', ascending=False).head(top_n)
+    else:
+        detection_df = pd.DataFrame(detection_data).sort_values('P_detection', ascending=False)
     
     # Crear colores basados en nivel de detección
     colors = []
@@ -685,7 +697,7 @@ def create_detection_probability_chart(royle_nichols_results, top_n=15):
     ])
     
     fig.update_layout(
-        title=f'Probabilidad de Detección (p) - Modelo Royle-Nichols - Top {min(top_n, len(detection_df))}',
+        title=f'Probabilidad de Detección (p) - Modelo Royle-Nichols' + (f' - Top {len(detection_df)}' if top_n else ''),
         xaxis_title='Probabilidad de Detección (p)',
         yaxis_title='Especie',
         xaxis=dict(tickformat='.0%', range=[0, 1]),
