@@ -154,6 +154,8 @@ Thumbs.db
 *.log
 *.tmp
 *.bak
+ARQUITECTURA
+ARQUITECTURA.md
 FORXIME2_PORTABLE/
 FORXIME2_ONEFILE_BUILD/
 launcher.log
