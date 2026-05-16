@@ -109,7 +109,14 @@ def interpret_dendrogram(distance_matrix, site_names, language='es'):
     """
     import numpy as np
     
-    avg_distance = np.mean(distance_matrix[np.triu_indices_from(distance_matrix, k=1)])
+    if distance_matrix.shape[0] < 2:
+        return "No hay suficientes sitios para una interpretación comparativa."
+        
+    triu_indices = np.triu_indices_from(distance_matrix, k=1)
+    if len(triu_indices[0]) == 0:
+        avg_distance = 0
+    else:
+        avg_distance = np.mean(distance_matrix[triu_indices])
     
     if language == 'es':
         interpretation = f"""
@@ -409,38 +416,46 @@ def generate_executive_summary(all_results, language='es'):
     """
     if language == 'es':
         summary = """
-# 📊 Resumen Ejecutivo - Análisis de Cámaras Trampa
+# 🐆 Reporte Ejecutivo Científico - TANIA v2.0
+---
 
-## Información General del Estudio
+## 📅 Resumen del Muestreo
 """
-        # Agregar información básica si está disponible
         if 'basic_metrics' in all_results:
-            metrics = all_results['basic_metrics']
+            m = all_results['basic_metrics']
             summary += f"""
-- **Período de muestreo:** {metrics['date_range']['days']} días
-- **Número de cámaras:** {metrics['total_cameras']}
-- **Número de sitios:** {metrics['total_sites']}
-- **Especies registradas:** {metrics['total_species']}
-- **Eventos independientes:** {metrics['total_independent_events']}
+- **Esfuerzo Total:** {m['date_range']['days']} días de calendario
+- **Estaciones de Muestreo:** {m['total_cameras']} cámaras en {m['total_sites']} sitios
+- **Riqueza Observada:** {m['total_species']} especies de fauna silvestre
+- **Abundancia Bruta:** {m['total_independent_events']} eventos independientes
 """
         
-        summary += "\n## Principales Hallazgos\n\n"
-        
-        # Biodiversidad
+        summary += "\n## 🌿 Biodiversidad y Estructura"
         if 'biodiversity' in all_results:
-            indices = all_results['biodiversity']
-            summary += f"### 🌿 Biodiversidad\n"
-            summary += f"- Riqueza: {indices['Richness']} especies\n"
-            summary += f"- Índice de Shannon: {indices['Shannon']:.3f}\n"
-            summary += f"- Índice de Simpson: {indices['Simpson']:.3f}\n\n"
-        
-        # Impacto antropogénico
+            b = all_results['biodiversity']
+            summary += f"\nLa comunidad presenta una riqueza de **{b['Richness']} especies**. "
+            summary += f"El índice de Shannon (**H' = {b['Shannon']:.2f}**) y la equitatividad de Pielou (**J' = {b['Pielou_Evenness']:.2f}**) "
+            summary += "sugieren una estructura de comunidad "
+            if b['Pielou_Evenness'] > 0.7: summary += "**equilibrada**."
+            else: summary += "**con dominancia de especies comunes**."
+
+        summary += "\n\n## 👥 Presión Antropogénica"
         if 'anthropogenic' in all_results:
-            impact = all_results['anthropogenic']
-            summary += f"### 👥 Impacto Antropogénico\n"
-            summary += f"- Registros antropogénicos: {impact['anthropogenic_percentage']:.1f}%\n\n"
-        
-        summary += "\n---\n*Reporte generado por FORXIME/2*\n"
+            a = all_results['anthropogenic']
+            summary += f"\nSe registró un impactó del **{a['anthropogenic_percentage']:.1f}%** de registros no-silvestres. "
+            if a['anthropogenic_percentage'] > 20:
+                summary += "Este nivel se considera **significativo** y podría estar desplazando a especies sensibles."
+            else:
+                summary += "El área mantiene una presión humana **controlada**."
+
+        summary += "\n\n## 📋 Diagnóstico de Muestreo"
+        if 'sampling_quality' in all_results and all_results['sampling_quality']:
+            summary += f"\nSe identificaron **{len(all_results['sampling_quality'])}** observaciones técnicas sobre el diseño de muestreo. "
+            summary += "Se recomienda revisar la sección de 'Calidad del Muestreo' para optimizar futuros esfuerzos."
+        else:
+            summary += "\nEl diseño de muestreo cumple con los estándares de robustez analítica."
+
+        summary += "\n\n---\n*Generado automáticamente por TANIA - Inteligencia Artificial aplicada a la Conservación*"
     
     else:  # English
         summary = """

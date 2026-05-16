@@ -9,33 +9,56 @@ import plotly.express as px
 from plotly.subplots import make_subplots
 import folium
 from folium.plugins import HeatMap, MarkerCluster
-# Imports pesados movidos dentro de las funciones (Lazy Loading)
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy.cluster.hierarchy import dendrogram
 import io
 import base64
+import re
+
+def is_scientific_name(name):
+    """Detecta si un nombre es científico basándose en heurísticas"""
+    if not isinstance(name, str): return False
+    exclude = ['vacío', 'vacio', 'humano', 'desconocido', 'vehículo', 'otro', 'antropogénico', 'sin identificar', 'sin fauna', 'nada', 'none']
+    if any(e in name.lower() for e in exclude):
+        return False
+    words = name.split()
+    # Dos palabras capitalizadas o segunda en minúscula (ej. Bos Taurus o Panthera onca)
+    if len(words) >= 2 and words[0][0].isupper() and (words[1][0].isupper() or words[1][0].islower() or words[1].lower() in ['sp.', 'spp.']):
+        return True
+    return False
+
+def italics_scientific(name):
+    """Agrega tags de itálicas si el nombre es científico"""
+    return f"<i>{name}</i>" if is_scientific_name(name) else name
 
 
-def create_abundance_bar_chart(df, top_n=None):
+def create_abundance_bar_chart(df, top_n=200):
     """
     Crea gráfica de barras de abundancia por especie
     
     Args:
         df: DataFrame con datos
-        top_n: Número de especies a mostrar (None para mostrar todas)
+        top_n: Número de especies a mostrar
     
     Returns:
         plotly figure
     """
-    abundance = df.groupby('Especie_Categoria')['Eventos_Independientes'].sum().sort_values(ascending=False)
+    # Deduplicate columns to prevent aggregation errors
+    df = df.loc[:, ~df.columns.duplicated()]
     
-    if top_n is not None:
-        top_species = abundance.head(top_n)
-    else:
-        top_species = abundance
+    abundance = df.groupby('Especie_Categoria', observed=True)['Eventos_Independientes'].sum().sort_values(ascending=False)
+
+    
+    top_species = abundance.head(top_n)
+    
+    # Aplicar cursivas a los nombres científicos en el eje Y
+    y_labels = [italics_scientific(name) for name in top_species.index]
     
     fig = go.Figure(data=[
         go.Bar(
             x=top_species.values,
-            y=top_species.index,
+            y=y_labels,
             orientation='h',
             marker=dict(
                 color=top_species.values,
@@ -49,12 +72,13 @@ def create_abundance_bar_chart(df, top_n=None):
     ])
     
     fig.update_layout(
-        title=f'Abundancia de Especies' + (f' (Top {top_n})' if top_n else ''),
+        title=f'Abundancia por Especie (Top {min(top_n, len(top_species))})',
         xaxis_title='Número de Eventos Independientes',
         yaxis_title='Especie',
-        height=max(400, len(top_species) * 30),
+        height=max(400, len(top_species) * 25),
         template='plotly_white',
-        font=dict(size=12)
+        margin=dict(l=150, r=20, t=50, b=50),
+        font=dict(size=11)
     )
     
     return fig
@@ -108,8 +132,6 @@ def create_dendrogram_plot(linkage_matrix, site_names):
     Returns:
         matplotlib figure
     """
-    import matplotlib.pyplot as plt
-    from scipy.cluster.hierarchy import dendrogram
     fig, ax = plt.subplots(figsize=(12, 6))
     
     dendrogram(
@@ -120,76 +142,141 @@ def create_dendrogram_plot(linkage_matrix, site_names):
         above_threshold_color='gray'
     )
     
-    ax.set_title('Dendrograma de Similitud de Bray-Curtis', fontsize=14, fontweight='bold')
-    ax.set_xlabel('Sitios', fontsize=12)
-    ax.set_ylabel('Distancia de Bray-Curtis', fontsize=12)
+    ax.set_title('Dendrograma de Similitud de Bray-Curtis', fontsize=12, fontweight='bold', pad=15)
+    ax.set_xlabel('Sitios', fontsize=10)
+    ax.set_ylabel('Distancia de Bray-Curtis', fontsize=10)
     plt.xticks(rotation=45, ha='right')
     plt.tight_layout()
     
     return fig
 
 
-def create_activity_pattern_plot(activity_data):
+def create_activity_pattern_plot(activity_data, species, plot_type='circular'):
     """
-    Crea gráfica radial de patrón de actividad
+    Crea gráfica de patrón de actividad
     
     Args:
-        activity_data: Diccionario con datos de actividad
+        activity_data: DataFrame filtrado
+        species: Especie seleccionada
+        plot_type: 'circular' o 'linear'
     
     Returns:
-        plotly figure
+        plotly figure or None if insufficient data
     """
-    grid_hours = activity_data['grid_hours']
-    density = activity_data['density']
-    species = activity_data['species']
+    # Ensure we have a 'Hora' column with numeric values
+    if 'Hora' not in activity_data.columns:
+        # Extraer hora de fecha si es necesario
+        if 'Fecha' in activity_data.columns:
+            activity_data['Hora'] = activity_data['Fecha'].dt.hour + activity_data['Fecha'].dt.minute/60
+        else:
+            return None
     
-    # Convertir horas a ángulos (0-360 grados)
-    theta = (grid_hours / 24) * 360
+    # Convert 'Hora' to numeric if it's in string format (e.g., "14:30:00")
+    if activity_data['Hora'].dtype == 'object' or activity_data['Hora'].dtype == 'string':
+        def parse_time_to_hours(time_str):
+            """Convert time string 'HH:MM:SS' to decimal hours"""
+            try:
+                if pd.isna(time_str):
+                    return np.nan
+                if isinstance(time_str, str):
+                    parts = time_str.split(':')
+                    hours = int(parts[0])
+                    minutes = int(parts[1]) if len(parts) > 1 else 0
+                    seconds = int(parts[2]) if len(parts) > 2 else 0
+                    return hours + minutes/60 + seconds/3600
+                else:
+                    return float(time_str)
+            except:
+                return np.nan
+        
+        activity_data = activity_data.copy()
+        activity_data['Hora'] = activity_data['Hora'].apply(parse_time_to_hours)
+        
+    sp_data = activity_data[activity_data['Especie_Categoria'] == species]
+    if sp_data.empty:
+        return None
+        
+    # Calcular densidad Kernel
+    from scipy import stats
     
+    # Datos circulares (0-24h)
+    hours = sp_data['Hora'].values.astype(float)  # Ensure numeric type
+    # Remove NaN values
+    hours = hours[~np.isnan(hours)]
+    
+    if len(hours) == 0:
+        return None
+    
+    # Duplicar datos para continuidad circular
+    hours_circ = np.concatenate([hours, hours + 24, hours - 24])
+    
+    # KDE
+    try:
+        kde = stats.gaussian_kde(hours_circ, bw_method=0.15)
+        grid_hours = np.linspace(0, 24, 100)
+        density = kde(grid_hours) * 3  # Normalizar por triplicación de datos
+    except Exception as e:
+        print(f"Error KDE: {e}")
+        return None
+
     fig = go.Figure()
-    
-    fig.add_trace(go.Scatterpolar(
-        r=density,
-        theta=theta,
-        fill='toself',
-        name=species,
-        line=dict(color='#1f77b4', width=2)
-    ))
-    
-    # Agregar marcadores para períodos del día
-    fig.add_trace(go.Scatterpolar(
-        r=[0, max(density)],
-        theta=[0, 0],
-        mode='lines',
-        line=dict(color='orange', width=1, dash='dash'),
-        name='Amanecer (6:00)',
-        showlegend=True
-    ))
-    
-    fig.add_trace(go.Scatterpolar(
-        r=[0, max(density)],
-        theta=[180, 180],
-        mode='lines',
-        line=dict(color='red', width=1, dash='dash'),
-        name='Atardecer (18:00)',
-        showlegend=True
-    ))
-    
-    fig.update_layout(
-        polar=dict(
-            radialaxis=dict(visible=True, range=[0, max(density) * 1.1]),
-            angularaxis=dict(
-                tickmode='array',
-                tickvals=[0, 90, 180, 270],
-                ticktext=['0:00', '6:00', '12:00', '18:00'],
-                direction='clockwise'
-            )
-        ),
-        title=f'Patrón de Actividad: {species}<br>Clasificación: {activity_data["pattern"]}',
-        showlegend=True,
-        height=500
-    )
-    
+
+    if plot_type == 'circular':
+        # Convertir horas a ángulos (0-360 grados)
+        theta = (grid_hours / 24) * 360
+        
+        fig.add_trace(go.Scatterpolar(
+            r=density,
+            theta=theta,
+            fill='toself',
+            name=species,
+            line=dict(color='#1f77b4', width=2)
+        ))
+        
+        # Marcadores Amanecer/Atardecer
+        fig.add_trace(go.Scatterpolar(
+            r=[0, max(density)], theta=[0, 0], mode='lines', line=dict(color='orange', dash='dash'), name='Amanecer (6:00)'
+        ))
+        fig.add_trace(go.Scatterpolar(
+            r=[0, max(density)], theta=[180, 180], mode='lines', line=dict(color='red', dash='dash'), name='Atardecer (18:00)'
+        ))
+        
+        fig.update_layout(
+            polar=dict(
+                radialaxis=dict(visible=True, range=[0, max(density)*1.1]),
+                angularaxis=dict(
+                    tickmode='array', tickvals=[0, 90, 180, 270],
+                    ticktext=['0:00', '6:00', '12:00', '18:00'], direction='clockwise'
+                )
+            ),
+            title=dict(
+                text=f'Patrón de Actividad Diario: {italics_scientific(species)}',
+                x=0.5
+            ),
+            height=500, template='plotly_white'
+        )
+
+    else:  # Linear plot
+        fig.add_trace(go.Scatter(
+            x=grid_hours, 
+            y=density,
+            fill='tozeroy',
+            name=species,
+            line=dict(color='#ff7f0e', width=2)
+        ))
+        
+        # Marcadores
+        fig.add_vline(x=6, line_dash="dash", line_color="orange", annotation_text="Amanecer")
+        fig.add_vline(x=18, line_dash="dash", line_color="red", annotation_text="Atardecer")
+        
+        fig.update_layout(
+            title=f'Densidad de Actividad: {species}',
+            xaxis_title='Hora del Día',
+            yaxis_title='Densidad de Actividad',
+            xaxis=dict(tickmode='linear', tick0=0, dtick=2, range=[0, 24]),
+            height=400, template='plotly_white'
+        )
+        
     return fig
 
 
@@ -319,8 +406,13 @@ def create_study_area_map(df):
     folium.TileLayer('OpenTopoMap', name='Topográfico', attr='OpenTopoMap').add_to(m)
     
     # Agregar marcadores de cámaras
+    # Defensive: Sitio_Agrupado may be absent when data was imported without UTM coords
+    if 'Sitio_Agrupado' not in df.columns:
+        df = df.copy()
+        df['Sitio_Agrupado'] = df['Camara']
     camera_coords = df[['Camara', 'Latitud', 'Longitud', 'Sitio_Agrupado']].drop_duplicates()
-    
+
+
     marker_cluster = MarkerCluster(name='Cámaras').add_to(m)
     
     for idx, row in camera_coords.iterrows():
@@ -362,21 +454,71 @@ def create_study_area_map(df):
     return m
 
 
-def create_rai_chart(rai_df, top_n=None):
+def create_spatial_richness_map(df):
+    """Crea mapa de densidad (heatmap) de riqueza para exportación estática de alta calidad"""
+    try:
+        # Agrupar riqueza por sitio
+        site_col = 'Sitio_Agrupado' if 'Sitio_Agrupado' in df.columns else 'Sitio'
+        if site_col not in df.columns:
+            return None
+            
+        spatial_data = df.groupby([site_col, 'Latitud', 'Longitud'], observed=True).agg({
+
+            'Especie_Categoria': 'nunique'
+        }).reset_index()
+        spatial_data.columns = [site_col, 'Latitud', 'Longitud', 'Riqueza']
+        
+        # Si no hay coordenadas válidas, retornar None
+        if spatial_data['Latitud'].isnull().all():
+            return None
+            
+        fig = px.density_mapbox(
+            spatial_data, 
+            lat='Latitud', 
+            lon='Longitud', 
+            z='Riqueza', 
+            radius=20,
+            hover_name=site_col, 
+            color_continuous_scale='Viridis',
+            zoom=12,
+            title='Distribución Espacial de la Riqueza de Especies (Heatmap)'
+        )
+        
+        # Agregar los puntos de las cámaras encima
+        fig.add_trace(go.Scattermapbox(
+            lat=spatial_data['Latitud'],
+            lon=spatial_data['Longitud'],
+            mode='markers',
+            marker=go.scattermapbox.Marker(size=8, color='white', opacity=0.7),
+            text=spatial_data[site_col],
+            hoverinfo='text',
+            showlegend=False
+        ))
+        
+        fig.update_layout(
+            mapbox_style="open-street-map",
+            margin={"r":0,"t":40,"l":0,"b":0},
+            title_z=0.9,
+            height=600,
+            coloraxis_colorbar=dict(title="Riqueza")
+        )
+        return fig
+    except Exception as e:
+        print(f"Error en mapa cartográfico: {e}")
+        return None
+
+def create_rai_chart(rai_df, top_n=200):
     """
     Crea gráfica de Índice de Abundancia Relativa
     
     Args:
         rai_df: DataFrame con RAI
-        top_n: Número de especies a mostrar (None para todas)
+        top_n: Número de especies a mostrar
     
     Returns:
         plotly figure
     """
-    if top_n is not None:
-        top_rai = rai_df.head(top_n)
-    else:
-        top_rai = rai_df
+    top_rai = rai_df.head(top_n)
     
     fig = go.Figure(data=[
         go.Bar(
@@ -395,11 +537,13 @@ def create_rai_chart(rai_df, top_n=None):
     ])
     
     fig.update_layout(
-        title=f'Índice de Abundancia Relativa (RAI)' + (f' - Top {top_n}' if top_n else ''),
+        title=f'Índice de Abundancia Relativa (RAI) - Top {min(top_n, len(top_rai))}',
         xaxis_title='RAI (eventos por 100 días-trampa)',
         yaxis_title='Especie',
-        height=max(400, len(top_rai) * 30),
-        template='plotly_white'
+        height=max(400, len(top_rai) * 25),
+        template='plotly_white',
+        margin=dict(l=150, r=20, t=50, b=50),
+        font=dict(size=11)
     )
     
     return fig
@@ -569,13 +713,13 @@ def create_occupancy_comparison_chart(occupancy_df, royle_nichols_results):
     return fig
 
 
-def create_lambda_bar_chart(royle_nichols_results, top_n=None):
+def create_lambda_bar_chart(royle_nichols_results, top_n=50):
     """
-    Crea gráfica de barras de abundancia relativa (λ) del modelo Royle-Nichols
+    Crea gráfica de barras de abundancia relativa (lambda) del modelo Royle-Nichols
     
     Args:
         royle_nichols_results: Diccionario con resultados de Royle-Nichols
-        top_n: Número de especies a mostrar (None para todas)
+        top_n: Número de especies a mostrar
     
     Returns:
         plotly figure
@@ -603,10 +747,7 @@ def create_lambda_bar_chart(royle_nichols_results, top_n=None):
         fig.update_layout(height=400)
         return fig
     
-    if top_n is not None:
-        lambda_df = pd.DataFrame(lambda_data).sort_values('Lambda', ascending=False).head(top_n)
-    else:
-        lambda_df = pd.DataFrame(lambda_data).sort_values('Lambda', ascending=False)
+    lambda_df = pd.DataFrame(lambda_data).sort_values('Lambda', ascending=False).head(top_n)
     
     fig = go.Figure(data=[
         go.Bar(
@@ -617,7 +758,7 @@ def create_lambda_bar_chart(royle_nichols_results, top_n=None):
                 color=lambda_df['Lambda'],
                 colorscale='Reds',
                 showscale=True,
-                colorbar=dict(title="λ")
+                colorbar=dict(title="lambda")
             ),
             text=[f'{x:.2f}' for x in lambda_df['Lambda']],
             textposition='auto',
@@ -625,8 +766,8 @@ def create_lambda_bar_chart(royle_nichols_results, top_n=None):
     ])
     
     fig.update_layout(
-        title=f'Abundancia Relativa (λ) - Modelo Royle-Nichols' + (f' - Top {len(lambda_df)}' if top_n else ''),
-        xaxis_title='Abundancia Relativa (λ)',
+        title=f'Abundancia Relativa (lambda) - Modelo Royle-Nichols - Top {min(top_n, len(lambda_df))}',
+        xaxis_title='Abundancia Relativa (lambda)',
         yaxis_title='Especie',
         height=max(400, len(lambda_df) * 30),
         template='plotly_white',
@@ -636,13 +777,13 @@ def create_lambda_bar_chart(royle_nichols_results, top_n=None):
     return fig
 
 
-def create_detection_probability_chart(royle_nichols_results, top_n=None):
+def create_detection_probability_chart(royle_nichols_results, top_n=50):
     """
     Crea gráfica de probabilidades de detección del modelo Royle-Nichols
     
     Args:
         royle_nichols_results: Diccionario con resultados de Royle-Nichols
-        top_n: Número de especies a mostrar (None para todas)
+        top_n: Número de especies a mostrar
     
     Returns:
         plotly figure
@@ -670,10 +811,7 @@ def create_detection_probability_chart(royle_nichols_results, top_n=None):
         fig.update_layout(height=400)
         return fig
     
-    if top_n is not None:
-        detection_df = pd.DataFrame(detection_data).sort_values('P_detection', ascending=False).head(top_n)
-    else:
-        detection_df = pd.DataFrame(detection_data).sort_values('P_detection', ascending=False)
+    detection_df = pd.DataFrame(detection_data).sort_values('P_detection', ascending=False).head(top_n)
     
     # Crear colores basados en nivel de detección
     colors = []
@@ -697,7 +835,7 @@ def create_detection_probability_chart(royle_nichols_results, top_n=None):
     ])
     
     fig.update_layout(
-        title=f'Probabilidad de Detección (p) - Modelo Royle-Nichols' + (f' - Top {len(detection_df)}' if top_n else ''),
+        title=f'Probabilidad de Detección (p) - Modelo Royle-Nichols - Top {min(top_n, len(detection_df))}',
         xaxis_title='Probabilidad de Detección (p)',
         yaxis_title='Especie',
         xaxis=dict(tickformat='.0%', range=[0, 1]),
@@ -849,12 +987,17 @@ def create_abundance_heatmap(df, species, bandwidth='auto', grid_resolution=100)
                         popup=f"RAI estimado: {grid_z[i, j]:.2f}"
                     ).add_to(m)
     
+    # Computar métricas globales para la leyenda y colores
+    min_rai = camera_data['RAI'].min() if not camera_data.empty else 0
+    max_rai = camera_data['RAI'].max() if not camera_data.empty else 0
+    avg_rai = camera_data['RAI'].mean() if not camera_data.empty else 0
+    
     # Añadir marcadores de cámaras
     for cam in camera_coords:
         # Determinar color del marcador según RAI
-        if cam['rai'] >= z_max * 0.7:
+        if max_rai > 0 and cam['rai'] >= max_rai * 0.7:
             marker_color = 'red'
-        elif cam['rai'] >= z_max * 0.4:
+        elif max_rai > 0 and cam['rai'] >= max_rai * 0.4:
             marker_color = 'orange'
         else:
             marker_color = 'green'
@@ -874,35 +1017,49 @@ def create_abundance_heatmap(df, species, bandwidth='auto', grid_resolution=100)
             radius=8,
             popup=folium.Popup(popup_html, max_width=300),
             tooltip=f"{cam['camera']}: RAI={cam['rai']:.2f}",
-            color='white',
+            color='black',
             fillColor=marker_color,
             fillOpacity=0.9,
             weight=2
         ).add_to(m)
+        
+        # Añadir etiqueta de texto permanente al lado
+        folium.Marker(
+            location=[cam['lat'], cam['lon']],
+            icon=folium.DivIcon(
+                html=f'<div style="font-size: 11pt; color: white; text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000; font-weight: bold; white-space: nowrap; transform: translate(12px, -12px);">{cam["camera"]}</div>'
+            )
+        ).add_to(m)
     
-    # Añadir leyenda personalizada
+    # Añadir leyenda personalizada dinámica
     legend_html = f'''
     <div style="position: fixed; 
-                bottom: 50px; right: 50px; width: 220px; height: auto; 
+                bottom: 50px; right: 50px; width: 260px; height: auto; 
                 background-color: white; z-index:9999; font-size:14px;
-                border:2px solid grey; border-radius: 5px; padding: 10px">
+                border:2px solid grey; border-radius: 5px; padding: 10px;
+                box-shadow: 2px 2px 5px rgba(0,0,0,0.3);">
         <p style="margin: 0; font-weight: bold; text-align: center;">
-            Tasa de detección del {species.split()[-1] if ' ' in species else species}
+            Abundancia Relativa (RAI)
         </p>
-        <p style="margin: 5px 0; font-size: 11px; text-align: center;">
-            (RAI: 0.88 registros/100 trampas-día)
+        <p style="margin: 5px 0; font-size: 12px; text-align: center; color: #555;">
+            {species}
         </p>
         <div style="background: linear-gradient(to right, #00FF00, #FFFF00, #FF0000); 
                     height: 20px; margin: 10px 0; border-radius: 3px;"></div>
-        <div style="display: flex; justify-content: space-between; font-size: 10px;">
-            <span>Bajo: 0.66</span>
-            <span style="text-align: right;">Alto: 7.66</span>
+        <div style="display: flex; justify-content: space-between; font-size: 12px; font-weight: bold;">
+            <span>Min: {min_rai:.2f}</span>
+            <span>Max: {max_rai:.2f}</span>
         </div>
         <hr style="margin: 10px 0;">
         <p style="margin: 5px 0; font-size: 11px;">
-            <b>RAI Promedio:</b> {camera_data['RAI'].mean():.2f}<br>
-            <b>RAI Máximo:</b> {camera_data['RAI'].max():.2f}<br>
-            <b>Cámaras:</b> {len(camera_data)}
+            <b>RAI Promedio:</b> {avg_rai:.2f}<br>
+            <b>Esfuerzo (Cámaras):</b> {len(camera_data)}<br>
+            <b>Cámaras con Éxito:</b> {len(camera_data[camera_data['Eventos'] > 0])}<br>
+            <b>Eventos Totales:</b> {int(camera_data['Eventos'].sum())}<br>
+            <br>
+            <span style="color:red;">🔴 Alta (Hotspot)</span><br>
+            <span style="color:orange;">🟠 Moderada</span><br>
+            <span style="color:green;">🟢 Baja</span>
         </p>
     </div>
     '''
@@ -946,10 +1103,58 @@ def fig_to_base64(fig):
     Returns:
         str: String base64
     """
-    import matplotlib.pyplot as plt
     buf = io.BytesIO()
     fig.savefig(buf, format='png', dpi=150, bbox_inches='tight')
     buf.seek(0)
     img_base64 = base64.b64encode(buf.read()).decode('utf-8')
     plt.close(fig)
     return img_base64
+
+
+def create_rai_by_site_bar_chart(rai_site_df, species):
+    """
+    Crea gráfica de barras de RAI por sitio para una especie
+    
+    Args:
+        rai_site_df: DataFrame con columnas 'Sitio' y 'RAI'
+        species: Nombre de la especie
+        
+    Returns:
+        plotly figure
+    """
+    if rai_site_df is None or rai_site_df.empty:
+        return None
+        
+    # Ordenar por RAI
+    rai_site_df = rai_site_df.sort_values('RAI', ascending=False)
+    
+    # Usar 'Sitio' si existe, si no usar 'Camara'
+    label_col = 'Sitio' if 'Sitio' in rai_site_df.columns else 'Camara'
+    
+    fig = go.Figure(data=[
+        go.Bar(
+            x=rai_site_df['RAI'],
+            y=rai_site_df[label_col],
+            orientation='h',
+            marker=dict(
+                color=rai_site_df['RAI'],
+                colorscale='Greens',
+                showscale=True,
+                colorbar=dict(title="RAI")
+            ),
+            text=[f'{v:.2f}' for v in rai_site_df['RAI']],
+            textposition='auto',
+        )
+    ])
+    
+    fig.update_layout(
+        title=f'RAI por Sitio: {italics_scientific(species)}',
+        xaxis_title='RAI (eventos por 100 días-trampa)',
+        yaxis_title='Sitio',
+        height=max(400, len(rai_site_df) * 30),
+        template='plotly_white',
+        margin=dict(l=150, r=20, t=50, b=50),
+        font=dict(size=11)
+    )
+    
+    return fig

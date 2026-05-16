@@ -61,14 +61,13 @@ def identify_livestock_predators(species_list):
 
 def identify_livestock_in_data(df):
     """
-    Identifica registros de ganado en los datos
-    
-    Args:
-        df: DataFrame con datos
-    
-    Returns:
-        DataFrame: Registros de ganado
+    Identifica registros de ganado en los datos usando configuración centralizada
     """
+    import os, json
+    # Determinar ruta raíz (TANIA/)
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    config_path = os.path.join(root_dir, 'config', 'species_config.json')
+    
     livestock_keywords = [
         'vaca', 'cow', 'ganado', 'cattle', 'bovino',
         'caballo', 'horse', 'equino',
@@ -77,7 +76,16 @@ def identify_livestock_in_data(df):
         'cerdo', 'pig', 'porcino'
     ]
     
-    mask = df['Especie_Categoria'].str.lower().str.contains('|'.join(livestock_keywords), na=False)
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                domestic = config.get("categories", {}).get("domestic", {}).get("keywords", [])
+                livestock_keywords = list(set(livestock_keywords + domestic))
+        except:
+            pass
+            
+    mask = df['Especie_Categoria'].str.lower().str.contains('|'.join([k.lower() for k in livestock_keywords]), na=False)
     livestock_df = df[mask].copy()
     
     return livestock_df
@@ -368,7 +376,7 @@ def generate_executive_summary_es(report):
     """
     Genera resumen ejecutivo en español
     """
-    summary = "# 🐄 Resumen Ejecutivo - Manejo Ganadero y Coexistencia con Fauna Silvestre\n\n"
+    summary = "# 🐄 Resumen Ejecutivo\n\n"
     
     predators = report['predators_detected']
     
@@ -400,7 +408,7 @@ def generate_executive_summary_en(report):
     """
     Genera resumen ejecutivo en inglés
     """
-    summary = "# 🐄 Executive Summary - Livestock Management and Wildlife Coexistence\n\n"
+    summary = "# 🐄 Executive Summary\n\n"
     
     predators = report['predators_detected']
     

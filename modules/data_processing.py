@@ -5,8 +5,6 @@ import pandas as pd
 import numpy as np
 from datetime import datetime
 import streamlit as st
-import io
-from openpyxl import load_workbook
 from utils.validators import (validate_utm_coordinates, validate_date, 
                               validate_time, validate_excel_format)
 from utils.geospatial import group_cameras_by_distance, add_latlon_columns
@@ -69,92 +67,46 @@ def process_manual_data(manual_data):
 
 def process_excel_data(uploaded_file):
     """
-    Procesa archivo Excel cargado con detección automática de entorno para máxima velocidad.
+    Procesa archivo Excel cargado
+    
+    Args:
+        uploaded_file: Archivo Excel cargado
+    
+    Returns:
+        tuple: (success, DataFrame or error_message)
     """
-    import sys
-    
-    # DETECCIÓN DE ENTORNO: Usar motor nativo de pandas si es Windows (Local/Portable)
-    # En Wasm (stlite/browser), sys.platform suele ser 'emscripten' o 'pyodide'
-    is_browser = sys.platform in ['emscripten', 'pyodide']
-    
-    if not is_browser:
-        # LECTOR NUCLEAR (Nativo): 100x más rápido que pd.read_excel en archivos grandes
-        try:
-            if hasattr(uploaded_file, 'read'):
-                file_content = io.BytesIO(uploaded_file.read())
-            else:
-                file_content = uploaded_file
-
-            # CARGA DE SOLO LECTURA (Sin estilos ni basura de Excel)
-            wb = load_workbook(file_content, read_only=True, data_only=True)
-            sheet = wb.active
-            
-            data = []
-            # Límite de 50 columnas para evitar escanear el "infinito" de Excel
-            max_col = min(sheet.max_column, 50) if sheet.max_column else 50
-            
-            for row in sheet.iter_rows(max_col=max_col, values_only=True):
-                # Si llegamos a una fila totalmente vacía, terminamos (SÚPER RÁPIDO)
-                if not any(row):
-                    if len(data) > 0: break
-                    continue
-                data.append(row)
-                
-            if not data:
-                return False, "El archivo Excel está vacío."
-            
-            # Convertimos a DataFrame (Ahora sí es instantáneo)
-            df = pd.DataFrame(data[1:], columns=data[0])
-            wb.close()
-            
-        except Exception as e:
-            return False, f"Error en lectura nuclear: {str(e)}"
-    else:
-        # LECTOR WEB (Wasm): Solo para el navegador
-        try:
-            if hasattr(uploaded_file, 'read'):
-                file_content = io.BytesIO(uploaded_file.read())
-            else:
-                file_content = uploaded_file
-
-            wb = load_workbook(file_content, read_only=True, data_only=True)
-            sheet = wb.active
-            
-            data = []
-            for row in sheet.iter_rows(values_only=True):
-                if not any(row): break
-                data.append(row)
-                
-            if not data: return False, "El archivo Excel está vacío."
-            
-            df = pd.DataFrame(data[1:], columns=data[0])
-            wb.close()
-        except Exception as e:
-            return False, f"Error en lectura Web: {str(e)}"
-
-    # PROCESAMIENTO COMÚN (Minimalista y Rápido)
     try:
-        # Solo limpieza básica de nulos
-        df = df.fillna(np.nan)
+        # Leer Excel
+        df = pd.read_excel(uploaded_file)
         
-        # Validar formato estructural (Solo columnas)
+        # Validar formato
         is_valid, result = validate_excel_format(df)
-        if not is_valid: return False, result
         
-        # NORMALIZACIÓN FÉRREA DE TIPOS (Evita errores de comparación str vs datetime)
-        if 'Fecha' in df.columns:
-            df['Fecha'] = pd.to_datetime(df['Fecha'], dayfirst=True, errors='coerce')
+        if not is_valid:
+            return False, result
         
-        if 'Hora' in df.columns:
-            # Asegurar que Hora sea consistente (time object)
-            df['Hora'] = pd.to_datetime(df['Hora'].astype(str), format='mixed', errors='coerce').dt.time
-            
-        if 'Especie_Categoria' in df.columns:
-            df['Especie_Categoria'] = df['Especie_Categoria'].astype(str).str.strip().str.title()
+        # Limpiar nombres de especies
+        df['Especie_Categoria'] = df['Especie_Categoria'].apply(clean_species_name)
         
-        # Eliminar filas con fechas inválidas que podrían romper los cálculos de .min()/.max()
-        if 'Fecha' in df.columns:
-            df = df.dropna(subset=['Fecha'])
+        # Agregar columnas de lat/lon — OPTIMIZADO: solo calcular para ubicaciones únicas
+        loc_cols = ['Camara', 'Coordenada_X_UTM', 'Coordenada_Y_UTM', 'Zona_UTM']
+        if all(c in df.columns for c in loc_cols):
+            unique_locs = df[loc_cols].drop_duplicates(subset=['Camara'])
+            unique_locs = add_latlon_columns(unique_locs)
+            # Merge lat/lon back to the main df by camera name
+            df = df.merge(
+                unique_locs[['Camara', 'Latitud', 'Longitud']].drop_duplicates(),
+                on='Camara', how='left'
+            )
+        else:
+            df['Latitud'] = None
+            df['Longitud'] = None
+
+        
+        # Calcular eventos independientes si no están especificados
+        if 'Eventos_Independientes' not in df.columns or df['Eventos_Independientes'].isna().all():
+            df = calculate_independent_events(df)
+            df['Eventos_Independientes'] = df['Evento_Independiente'].astype(int)
         
         return True, df
     
@@ -185,31 +137,35 @@ def group_sites(df, max_distance=10):
     return df
 
 
-def prepare_detection_history(df):
+def prepare_detection_history(df, period_days=7):
     """
     Prepara matriz de historia de detección para análisis de ocupación
     
     Args:
         df: DataFrame con datos procesados
+        period_days: Duración de cada ocasión de muestreo en días (default: 7)
     
     Returns:
         dict: Diccionario con matrices de detección por especie
     """
     detection_histories = {}
     
-    # Convertir fecha a datetime
-    df['Fecha'] = pd.to_datetime(df['Fecha'])
+    # Convertir fecha a datetime de forma segura
+    df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
+    df = df.dropna(subset=['Fecha'])
     
-    # Definir ocasiones de muestreo (por ejemplo, semanas)
-    df['Semana'] = df['Fecha'].dt.isocalendar().week
+    # Agrupar por periodos dinámicos en base a la fecha de inicio general
+    min_date = df['Fecha'].min()
+    df['Dias_Desde_Inicio'] = (df['Fecha'] - min_date).dt.days
+    df['Ocasiones'] = (df['Dias_Desde_Inicio'] // period_days) + 1
     
     for species in df['Especie_Categoria'].unique():
         species_data = df[df['Especie_Categoria'] == species]
         
         # Crear matriz de detección (sitios x ocasiones)
         detection_matrix = species_data.pivot_table(
-            index='Sitio_Agrupado',
-            columns='Semana',
+            index='Sitio_Agrupado' if 'Sitio_Agrupado' in species_data.columns else 'Sitio',
+            columns='Ocasiones',
             values='Eventos_Independientes',
             aggfunc='sum',
             fill_value=0
@@ -242,9 +198,9 @@ def calculate_basic_metrics(df):
         'total_sites': df['Sitio_Agrupado'].nunique() if 'Sitio_Agrupado' in df.columns else df['Sitio'].nunique(),
         'total_species': df['Especie_Categoria'].nunique(),
         'date_range': {
-            'start': df['Fecha'].min() if not df['Fecha'].empty else None,
-            'end': df['Fecha'].max() if not df['Fecha'].empty else None,
-            'days': (pd.to_datetime(df['Fecha'].max()) - pd.to_datetime(df['Fecha'].min())).days if not df['Fecha'].empty else 0
+            'start': df['Fecha'].min(),
+            'end': df['Fecha'].max(),
+            'days': (pd.to_datetime(df['Fecha'].max(), errors='coerce') - pd.to_datetime(df['Fecha'].min(), errors='coerce')).days if not df.empty else 0
         },
         'total_independent_events': df['Eventos_Independientes'].sum() if 'Eventos_Independientes' in df.columns else len(df)
     }
@@ -262,6 +218,12 @@ def identify_non_wildlife(df):
     Returns:
         DataFrame: Registros no-fauna silvestre
     """
+    # Cargar configuración centralizada
+    import os, json
+    # Determinar ruta raíz (TANIA/)
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    config_path = os.path.join(root_dir, 'config', 'species_config.json')
+    
     non_wildlife_keywords = [
         'humano', 'human', 'persona', 'person', 'gente', 'people',
         'perro', 'dog', 'can', 'domestico', 'domestic',
@@ -272,10 +234,19 @@ def identify_non_wildlife(df):
         'bicicleta', 'bicycle', 'bike'
     ]
     
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                exclude = config.get("categories", {}).get("exclude", {}).get("keywords", [])
+                anthro = config.get("categories", {}).get("anthropogenic", {}).get("keywords", [])
+                domestic = config.get("categories", {}).get("domestic", {}).get("keywords", [])
+                non_wildlife_keywords = list(set(non_wildlife_keywords + exclude + anthro + domestic))
+        except:
+            pass
+    
     # Crear máscara para identificar no-fauna
-    # Usar \b para coincidir con la palabra completa y evitar falsos positivos (ej: 'can' en 'canario')
-    keywords_regex = r'\b(' + '|'.join(non_wildlife_keywords).replace('|', r'|') + r')\b'
-    mask = df['Especie_Categoria'].str.lower().str.contains(keywords_regex, regex=True, na=False)
+    mask = df['Especie_Categoria'].str.lower().str.contains('|'.join(non_wildlife_keywords), na=False)
     
     non_wildlife_df = df[mask].copy()
     non_wildlife_df['Categoria_Antropogenica'] = non_wildlife_df['Especie_Categoria'].apply(
@@ -295,19 +266,19 @@ def categorize_anthropogenic(species_name):
     Returns:
         str: Categoría antropogénica
     """
-    import re
-    species_lower = str(species_name).lower()
+    species_lower = species_name.lower()
     
-    # Usamos \b para asegurar que se busque la palabra completa y no un fragmento (ej: evitar car en carpintero)
-    if re.search(r'\b(humano|human|persona|person|gente|people)\b', species_lower):
+    if any(word in species_lower for word in ['vacio', 'vacío', 'empty', 'desconocido', 'unknown', 'sin identificar']):
+        return 'Excluido'
+    elif any(word in species_lower for word in ['humano', 'human', 'persona', 'person', 'gente', 'people']):
         return 'Humano'
-    elif re.search(r'\b(perro|dog)\b', species_lower):
+    elif any(word in species_lower for word in ['perro', 'dog']):
         return 'Perro Doméstico'
-    elif re.search(r'\b(gato|cat)\b', species_lower):
+    elif any(word in species_lower for word in ['gato', 'cat']):
         return 'Gato Doméstico'
-    elif re.search(r'\b(vaca|cow|ganado|cattle|bovino)\b', species_lower):
+    elif any(word in species_lower for word in ['vaca', 'cow', 'ganado', 'cattle', 'bovino']):
         return 'Ganado'
-    elif re.search(r'\b(vehiculo|vehículo|vehicle|carro|car|moto)\b', species_lower):
+    elif any(word in species_lower for word in ['vehiculo', 'vehicle', 'carro', 'car', 'moto']):
         return 'Vehículo'
     else:
         return 'Otro Antropogénico'
@@ -362,7 +333,8 @@ def summarize_by_camera(df):
     Returns:
         DataFrame: Resumen por cámara
     """
-    summary = df.groupby('Camara').agg({
+    summary = df.groupby('Camara', observed=True).agg({
+
         'Especie_Categoria': 'nunique',
         'Eventos_Independientes': 'sum',
         'Fecha': lambda x: (x.max() - x.min()).days + 1
@@ -386,7 +358,8 @@ def summarize_by_species(df):
     Returns:
         DataFrame: Resumen por especie
     """
-    summary = df.groupby('Especie_Categoria').agg({
+    summary = df.groupby('Especie_Categoria', observed=True).agg({
+
         'Camara': 'nunique',
         'Eventos_Independientes': 'sum',
         'Sitio_Agrupado': 'nunique' if 'Sitio_Agrupado' in df.columns else 'Sitio'

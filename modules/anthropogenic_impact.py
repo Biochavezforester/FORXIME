@@ -19,25 +19,30 @@ def calculate_anthropogenic_impact(df):
     # Identificar registros no-fauna
     non_wildlife = identify_non_wildlife(df)
     
+    # Filtrar categorías excluidas (vacíos, etc) para el cálculo de impacto real
+    real_impact = non_wildlife[non_wildlife['Categoria_Antropogenica'] != 'Excluido']
+    
     total_records = len(df)
-    anthropogenic_records = len(non_wildlife)
+    anthropogenic_records = len(real_impact)
     
     # Porcentaje de registros antropogénicos
     anthropogenic_pct = (anthropogenic_records / total_records * 100) if total_records > 0 else 0
     
     # Categorizar registros antropogénicos
     if len(non_wildlife) > 0:
-        anthropogenic_by_category = non_wildlife.groupby('Categoria_Antropogenica').size()
+        anthropogenic_by_category = non_wildlife.groupby('Categoria_Antropogenica', observed=True).size()
+
     else:
         anthropogenic_by_category = pd.Series()
     
     results = {
         'total_records': total_records,
         'anthropogenic_records': anthropogenic_records,
-        'wildlife_records': total_records - anthropogenic_records,
+        'wildlife_records': total_records - len(non_wildlife), # Fauna silvestre real
         'anthropogenic_percentage': anthropogenic_pct,
-        'by_category': anthropogenic_by_category.to_dict() if len(anthropogenic_by_category) > 0 else {},
-        'non_wildlife_df': non_wildlife
+        'by_category': real_impact.groupby('Categoria_Antropogenica', observed=True).size().to_dict() if len(real_impact) > 0 else {},
+
+        'non_wildlife_df': real_impact
     }
     
     return results
@@ -56,13 +61,16 @@ def calculate_impact_by_site(df):
     site_column = 'Sitio_Agrupado' if 'Sitio_Agrupado' in df.columns else 'Sitio'
     
     non_wildlife = identify_non_wildlife(df)
+    # Filtrar categorías excluidas
+    real_impact = non_wildlife[non_wildlife['Categoria_Antropogenica'] != 'Excluido']
     
     # Total de registros por sitio
-    total_by_site = df.groupby(site_column).size()
+    total_by_site = df.groupby(site_column, observed=True).size()
     
     # Registros antropogénicos por sitio
-    if len(non_wildlife) > 0:
-        anthro_by_site = non_wildlife.groupby(site_column).size()
+    if len(real_impact) > 0:
+        anthro_by_site = real_impact.groupby(site_column, observed=True).size()
+
     else:
         anthro_by_site = pd.Series()
     
@@ -111,9 +119,10 @@ def analyze_wildlife_anthropogenic_correlation(df):
     wildlife = df[~df.index.isin(non_wildlife.index)]
     
     # Métricas por sitio
-    anthro_by_site = non_wildlife.groupby(site_column).size() if len(non_wildlife) > 0 else pd.Series()
-    wildlife_richness = wildlife.groupby(site_column)['Especie_Categoria'].nunique()
-    wildlife_abundance = wildlife.groupby(site_column)['Eventos_Independientes'].sum()
+    anthro_by_site = non_wildlife.groupby(site_column, observed=True).size() if len(non_wildlife) > 0 else pd.Series(dtype=int)
+    wildlife_richness = wildlife.groupby(site_column, observed=True)['Especie_Categoria'].nunique()
+    wildlife_abundance = wildlife.groupby(site_column, observed=True)['Eventos_Independientes'].sum()
+
     
     # Crear DataFrame combinado
     combined = pd.DataFrame({

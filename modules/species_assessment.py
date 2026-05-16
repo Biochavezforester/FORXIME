@@ -220,24 +220,6 @@ def get_biogeographic_description(status, language='es'):
     else:
         return descriptions_en.get(status, 'Unknown')
 
-    """
-    Evalúa el estado de conservación de una especie
-    
-    Args:
-        species_name: Nombre de la especie
-    
-    Returns:
-        str: Categoría IUCN o 'LC' (Preocupación Menor)
-    """
-    species_lower = species_name.lower()
-    
-    for category, species_list in THREATENED_SPECIES.items():
-        if any(sp in species_lower for sp in species_list):
-            return category
-    
-    return 'LC'  # Least Concern (Preocupación Menor)
-
-
 def calculate_conservation_priority_score(df, species):
     """
     Calcula puntaje de prioridad de conservación

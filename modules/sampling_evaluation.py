@@ -7,35 +7,65 @@ import numpy as np
 
 def identify_false_triggers(df):
     """
-    Identifica posibles disparos falsos (fotos sin fauna)
-    
-    Args:
-        df: DataFrame con datos
-    
-    Returns:
-        dict: Análisis de falsos positivos
+    Identifica posibles disparos falsos (fotos sin fauna) de forma robusta.
     """
-    # Buscar registros que podrían ser falsos positivos
-    false_trigger_keywords = ['vacio', 'empty', 'sin animal', 'no animal', 'vegetacion', 
-                              'vegetation', 'viento', 'wind', 'lluvia', 'rain']
+    # 1. Asegurar que tenemos una Serie y no un DataFrame (por duplicidad de columnas)
+    if 'Especie_Categoria' not in df.columns:
+        return {'percentage': 0, 'total_false_triggers': 0, 'by_camera': {}, 'cameras_with_high_false_rate': []}
     
-    mask = df['Especie_Categoria'].str.lower().str.contains('|'.join(false_trigger_keywords), na=False)
+    col_data = df['Especie_Categoria']
+    if isinstance(col_data, pd.DataFrame):
+        col_data = col_data.iloc[:, 0] # Tomar la primera si hay duplicidad
+    
+    # 2. Palabras clave base
+    false_trigger_keywords = [
+        'vacia', 'vacía', 'vacio', 'vacío', 'empty', 'sin animal', 'no animal', 'sin fauna', 'sin_fauna',
+        'nada', 'none', 'vegetacion', 'vegetación', 'vegetation', 'viento', 'wind', 'lluvia', 'rain',
+        'falso disparó', 'falso disparo', 'false trigger', 'shadow', 'sombra'
+    ]
+    
+    # 3. Cargar configuración extra si existe
+    import os, json
+    root_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    config_path = os.path.join(root_dir, 'config', 'species_config.json')
+    if os.path.exists(config_path):
+        try:
+            with open(config_path, "r", encoding="utf-8") as f:
+                config = json.load(f)
+                exclude = config.get("categories", {}).get("exclude", {}).get("keywords", [])
+                false_trigger_keywords = list(set(false_trigger_keywords + [k.lower() for k in exclude if k]))
+        except: pass
+    
+    # 4. Normalización para búsqueda
+    search_series = col_data.fillna('').astype(str).str.lower().str.strip()
+    
+    # 5. Detección Directa y por Subcadena (Enfoque por pasos para mayor éxito)
+    # Paso A: Coincidencia exacta (Muy rápida y segura)
+    mask_exact = search_series.isin([k.lower() for k in false_trigger_keywords])
+    
+    # Paso B: Coincidencia por subcadena (Para casos como "vacia - rama")
+    import re
+    # Escapar keywords para evitar que caracteres raros rompan el regex
+    escaped_keywords = [re.escape(k.lower()) for k in false_trigger_keywords if k]
+    pattern = '|'.join(escaped_keywords)
+    mask_contains = search_series.str.contains(pattern, na=False, regex=True)
+    
+    mask = mask_exact | mask_contains
     false_triggers = df[mask]
     
-    # Calcular por cámara
-    false_by_camera = false_triggers.groupby('Camara').size() if len(false_triggers) > 0 else pd.Series()
-    total_by_camera = df.groupby('Camara').size()
+    # 6. Estadísticas por cámara
+    false_by_camera = false_triggers.groupby('Camara', observed=True).size() if not false_triggers.empty else pd.Series(dtype=int)
+    total_by_camera = df.groupby('Camara', observed=True).size()
+
     
     false_pct_by_camera = (false_by_camera / total_by_camera * 100).fillna(0)
     
-    results = {
+    return {
         'total_false_triggers': len(false_triggers),
-        'percentage': len(false_triggers) / len(df) * 100 if len(df) > 0 else 0,
+        'percentage': (len(false_triggers) / len(df) * 100) if len(df) > 0 else 0,
         'by_camera': false_pct_by_camera.to_dict(),
         'cameras_with_high_false_rate': false_pct_by_camera[false_pct_by_camera > 20].index.tolist()
     }
-    
-    return results
 
 
 def calculate_sampling_effort(df):
@@ -49,9 +79,11 @@ def calculate_sampling_effort(df):
         DataFrame: Esfuerzo por cámara
     """
     df = df.copy()
-    df['Fecha'] = pd.to_datetime(df['Fecha'])
+    df['Fecha'] = pd.to_datetime(df['Fecha'], errors='coerce')
+    df = df.dropna(subset=['Fecha'])
     
-    effort = df.groupby('Camara').agg({
+    effort = df.groupby('Camara', observed=True).agg({
+
         'Fecha': lambda x: (x.max() - x.min()).days + 1,
         'Especie_Categoria': 'nunique',
         'Eventos_Independientes': 'sum'
@@ -168,7 +200,8 @@ def evaluate_paired_vs_single_sites(df):
         }
     
     # Contar cámaras por sitio agrupado
-    cameras_per_site = df.groupby('Sitio_Agrupado')['Camara'].nunique()
+    cameras_per_site = df.groupby('Sitio_Agrupado', observed=True)['Camara'].nunique()
+
     
     single_sites = (cameras_per_site == 1).sum()
     paired_sites = (cameras_per_site == 2).sum()
@@ -178,8 +211,9 @@ def evaluate_paired_vs_single_sites(df):
     single_site_names = cameras_per_site[cameras_per_site == 1].index
     paired_site_names = cameras_per_site[cameras_per_site == 2].index
     
-    single_richness = df[df['Sitio_Agrupado'].isin(single_site_names)].groupby('Sitio_Agrupado')['Especie_Categoria'].nunique().mean()
-    paired_richness = df[df['Sitio_Agrupado'].isin(paired_site_names)].groupby('Sitio_Agrupado')['Especie_Categoria'].nunique().mean()
+    single_richness = df[df['Sitio_Agrupado'].isin(single_site_names)].groupby('Sitio_Agrupado', observed=True)['Especie_Categoria'].nunique().mean()
+    paired_richness = df[df['Sitio_Agrupado'].isin(paired_site_names)].groupby('Sitio_Agrupado', observed=True)['Especie_Categoria'].nunique().mean()
+
     
     # Determinar recomendación
     if paired_richness > single_richness * 1.3:
@@ -299,18 +333,22 @@ def generate_sampling_recommendations(df):
     return recommendations
 
 
-def detect_camera_spacing_issues(df, min_distance=10):
+def detect_camera_spacing_issues(df, min_distance=None):
     """
     Detecta cámaras que están muy cercanas entre sí (< min_distance metros)
     
     Args:
         df: DataFrame con datos de cámaras
-        min_distance: Distancia mínima en metros (default: 10m)
+        min_distance: Distancia mínima en metros. Si es None, usa session_state.grouping_radius.
     
     Returns:
         dict: Información detallada sobre cámaras cercanas
     """
     from scipy.spatial.distance import pdist, squareform
+    import streamlit as st
+    
+    if min_distance is None:
+        min_distance = st.session_state.get('grouping_radius', 10)
     
     # Obtener coordenadas únicas de cámaras
     cameras = df[['Camara', 'Coordenada_X_UTM', 'Coordenada_Y_UTM', 'Sitio_Agrupado']].drop_duplicates()
@@ -393,3 +431,32 @@ def detect_camera_spacing_issues(df, min_distance=10):
             'recommendations': ['✅ Todas las cámaras están bien espaciadas (> 10m de separación)']
         }
 
+def generate_false_trigger_criticism(false_triggers_results):
+    """
+    Genera una crítica cualitativa sobre los disparos en falso (fotos vacías)
+    """
+    total_pct = false_triggers_results.get('percentage', 0)
+    high_rate_cameras = false_triggers_results.get('cameras_with_high_false_rate', [])
+    
+    criticism = {
+        'nive_critica': 'Bajo',
+        'impacto': 'Mínimo en la eficiencia del procesamiento.',
+        'conclusion': 'El sistema presenta una estabilidad adecuada.',
+        'recomendacion': 'Continuar con el protocolo actual.'
+    }
+    
+    if total_pct > 30:
+        criticism['nive_critica'] = 'Crítico'
+        criticism['impacto'] = 'Alto impacto en el almacenamiento y tiempo de procesamiento. Riesgo de desgaste prematuro de baterías y memoria.'
+        criticism['conclusion'] = 'Existe una interferencia ambiental significativa (viento, vegetación) o sensibilidad excesiva en los sensores.'
+        criticism['recomendacion'] = 'Reubicar cámaras con tasas >30% y ajustar el ángulo para evitar vegetación móvil.'
+    elif total_pct > 15:
+        criticism['nive_critica'] = 'Moderado'
+        criticism['impacto'] = 'Impacto moderado. Incrementa el tiempo de curación manual de datos.'
+        criticism['conclusion'] = 'Presencia de eventos no biológicos recurrentes.'
+        criticism['recomendacion'] = 'Revisar la configuración de sensibilidad de las cámaras señaladas.'
+        
+    if high_rate_cameras:
+        criticism['detalle_camaras'] = f"Las estaciones {', '.join(high_rate_cameras)} presentan las tasas más altas de disparos en falso."
+    
+    return criticism

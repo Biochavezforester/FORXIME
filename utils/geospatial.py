@@ -3,7 +3,9 @@ Funciones geoespaciales para FORXIME/2
 """
 import numpy as np
 import pandas as pd
-# Heavy geospatial imports moved inside functions (Lazy Loading)
+from pyproj import Transformer
+from scipy.spatial.distance import cdist
+import utm
 
 
 def utm_to_latlon(x, y, zone_number, zone_letter):
@@ -24,7 +26,6 @@ def utm_to_latlon(x, y, zone_number, zone_letter):
         northern = zone_letter.upper() >= 'N'
         
         # Convertir usando utm library
-        import utm
         lat, lon = utm.to_latlon(x, y, zone_number, northern=northern)
         
         return lat, lon
@@ -46,7 +47,6 @@ def latlon_to_utm(lat, lon):
         tuple: (x, y, zone_number, zone_letter)
     """
     try:
-        import utm
         x, y, zone_number, zone_letter = utm.from_latlon(lat, lon)
         return x, y, zone_number, zone_letter
     
@@ -101,7 +101,6 @@ def group_cameras_by_distance(cameras_df, max_distance=10):
         coords = zone_cameras[['Coordenada_X_UTM', 'Coordenada_Y_UTM']].values
         
         # Calcular matriz de distancias
-        from scipy.spatial.distance import cdist
         dist_matrix = cdist(coords, coords, metric='euclidean')
         
         # Agrupar cámaras cercanas
@@ -117,7 +116,7 @@ def group_cameras_by_distance(cameras_df, max_distance=10):
             close_cameras = np.where(dist_matrix[i] <= max_distance)[0]
             
             # Crear nuevo grupo
-            group_name = f"Sitio_Grupo_{zone}_{group_id}"
+            group_name = f"Sitio_{group_id + 1}"
             for cam_idx in close_cameras:
                 if cam_idx not in assigned:
                     groups[zone_cameras.index[cam_idx]] = group_name
@@ -150,7 +149,8 @@ def calculate_centroid(cameras_df):
 
 def get_bounding_box(cameras_df):
     """
-    Obtiene el bounding box de las cámaras
+    Obtiene el bounding box de las cámaras.
+    OPTIMIZADO: Usa pyproj vectorizado en lugar de iterar fila por fila.
     
     Args:
         cameras_df: DataFrame con coordenadas
@@ -158,36 +158,54 @@ def get_bounding_box(cameras_df):
     Returns:
         dict: {'min_lat', 'max_lat', 'min_lon', 'max_lon'}
     """
-    # Convertir todas las coordenadas a lat/lon
-    lats = []
-    lons = []
+    # CRITICAL: DataFrame-level check (faster and safer)
+    required = ['Coordenada_X_UTM', 'Coordenada_Y_UTM', 'Zona_UTM']
+    if not all(col in cameras_df.columns for col in required):
+        return None
     
-    for idx, row in cameras_df.iterrows():
-        zone_number = int(row['Zona_UTM'][:-1])
-        zone_letter = row['Zona_UTM'][-1]
-        
-        lat, lon = utm_to_latlon(
-            row['Coordenada_X_UTM'],
-            row['Coordenada_Y_UTM'],
-            zone_number,
-            zone_letter
-        )
-        
-        if lat is not None and lon is not None:
-            lats.append(lat)
-            lons.append(lon)
+    # Filter valid rows
+    valid = cameras_df[required].dropna()
+    valid = valid[valid['Zona_UTM'].astype(str).str.len() >= 2]
     
-    if not lats or not lons:
+    if valid.empty:
+        return None
+    
+    all_lats = []
+    all_lons = []
+    
+    for zone, group in valid.groupby('Zona_UTM'):
+        val_zona = str(zone).strip().upper()
+        if len(val_zona) < 2:
+            continue
+        try:
+            zone_number = int(val_zona[:-1])
+            zone_letter = val_zona[-1]
+            northern = zone_letter >= 'N'
+            
+            epsg_code = 32600 + zone_number if northern else 32700 + zone_number
+            transformer = Transformer.from_crs(f"epsg:{epsg_code}", "epsg:4326", always_xy=True)
+            
+            lons, lats = transformer.transform(
+                group['Coordenada_X_UTM'].values,
+                group['Coordenada_Y_UTM'].values
+            )
+            all_lats.extend(lats)
+            all_lons.extend(lons)
+        except Exception:
+            continue
+    
+    if not all_lats or not all_lons:
         return None
     
     return {
-        'min_lat': min(lats),
-        'max_lat': max(lats),
-        'min_lon': min(lons),
-        'max_lon': max(lons),
-        'center_lat': np.mean(lats),
-        'center_lon': np.mean(lons)
+        'min_lat': min(all_lats),
+        'max_lat': max(all_lats),
+        'min_lon': min(all_lons),
+        'max_lon': max(all_lons),
+        'center_lat': np.mean(all_lats),
+        'center_lon': np.mean(all_lons)
     }
+
 
 
 def calculate_study_area(cameras_df):
@@ -211,7 +229,7 @@ def calculate_study_area(cameras_df):
     
     try:
         hull = ConvexHull(coords)
-        area_m2 = hull.area  # En 2D, area es el área superficial; volume es el área para hulls 2D en versiones recientes.
+        area_m2 = hull.volume  # En 2D, volume es el área
         area_km2 = area_m2 / 1_000_000  # Convertir a km²
         return area_km2
     except:
@@ -220,46 +238,59 @@ def calculate_study_area(cameras_df):
 
 def add_latlon_columns(df):
     """
-    Agrega columnas de latitud y longitud al DataFrame de forma optimizada.
-    Mapea solo coordenadas únicas para evitar miles de cálculos redundantes.
+    Agrega columnas de latitud y longitud al DataFrame.
+    OPTIMIZADO: Usa pyproj vectorizado en lugar de iterar fila por fila.
+    
+    Args:
+        df: DataFrame con coordenadas UTM
+    
+    Returns:
+        DataFrame: DataFrame con columnas 'Latitud' y 'Longitud' agregadas
     """
     df = df.copy()
     
-    # Columnas necesarias
-    if not all(col in df.columns for col in ['Coordenada_X_UTM', 'Coordenada_Y_UTM', 'Zona_UTM']):
+    # Initialize with NaNs
+    df['Latitud'] = np.nan
+    df['Longitud'] = np.nan
+    
+    # Check for required columns
+    required_cols = ['Coordenada_X_UTM', 'Coordenada_Y_UTM', 'Zona_UTM']
+    if not all(col in df.columns for col in required_cols):
         return df
         
-    # 1. Identificar combinaciones únicas de coordenadas (Súper rápido)
-    unique_coords = df[['Coordenada_X_UTM', 'Coordenada_Y_UTM', 'Zona_UTM']].drop_duplicates().copy()
+    # Drop rows with missing critical UTM data just for the conversion
+    valid_mask = df[required_cols].notna().all(axis=1) & (df['Zona_UTM'].astype(str).str.len() >= 2)
     
-    # 2. Calcular Lat/Lon solo para los únicos (Ej: de 50,000 pasamos a 50 cálculos)
-    lats = []
-    lons = []
-    
-    import utm
-    for _, row in unique_coords.iterrows():
+    if not valid_mask.any():
+        return df
+        
+    # Group by Zone to minimize Transformer creations (since zone defines the projection)
+    for zone, group in df[valid_mask].groupby('Zona_UTM'):
+        val_zona = str(zone).strip().upper()
+        if len(val_zona) < 2: continue
+        
         try:
-            zone_str = str(row['Zona_UTM']).strip()
-            zone_number = int(zone_str[:-1])
-            zone_letter = zone_str[-1].upper()
+            zone_number = int(val_zona[:-1])
+            zone_letter = val_zona[-1]
             northern = zone_letter >= 'N'
             
-            lat, lon = utm.to_latlon(
-                row['Coordenada_X_UTM'], 
-                row['Coordenada_Y_UTM'], 
-                zone_number, 
-                northern=northern
-            )
-            lats.append(lat)
-            lons.append(lon)
-        except:
-            lats.append(None)
-            lons.append(None)
+            # Create a vectorised pyproj Transformer for this specific zone
+            # EPSG: 326xx for North, 327xx for South (xx = zone number)
+            epsg_code = 32600 + zone_number if northern else 32700 + zone_number
+            transformer = Transformer.from_crs(f"epsg:{epsg_code}", "epsg:4326", always_xy=True)
             
-    unique_coords['Latitud'] = lats
-    unique_coords['Longitud'] = lons
-    
-    # 3. Mapear de vuelta al DataFrame original (Operación vectorial instantánea)
-    df = df.merge(unique_coords, on=['Coordenada_X_UTM', 'Coordenada_Y_UTM', 'Zona_UTM'], how='left')
-    
+            # Apply transformation in bulk
+            lons, lats = transformer.transform(
+                group['Coordenada_X_UTM'].values, 
+                group['Coordenada_Y_UTM'].values
+            )
+            
+            # Assign back to main dataframe
+            df.loc[group.index, 'Longitud'] = lons
+            df.loc[group.index, 'Latitud'] = lats
+            
+        except Exception as e:
+            print(f"Error vectorizando zona {zone}: {e}")
+            
     return df
+

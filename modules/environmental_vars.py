@@ -2,9 +2,10 @@
 Módulo de variables ambientales para FORXIME/2
 Extrae variables ambientales basadas en coordenadas geográficas
 """
-# Imports pesados movidos dentro de las funciones (Lazy Loading)
 import pandas as pd
 import numpy as np
+import requests
+from geopy.distance import geodesic
 import warnings
 warnings.filterwarnings('ignore')
 
@@ -23,7 +24,6 @@ def query_overpass_api(lat, lon, radius=5000, feature_type='waterway'):
         dict: Resultados de la consulta
     """
     overpass_url = "http://overpass-api.de/api/interpreter"
-    import requests
     
     if feature_type == 'waterway':
         query = f"""
@@ -69,7 +69,6 @@ def calculate_distance_to_nearest_river(lat, lon):
     """
     # Buscar ríos en un radio de 50km
     result = query_overpass_api(lat, lon, radius=50000, feature_type='waterway')
-    from geopy.distance import geodesic
     
     if not result or 'elements' not in result or len(result['elements']) == 0:
         return None
@@ -105,7 +104,6 @@ def calculate_distance_to_nearest_city(lat, lon):
     """
     # Buscar ciudades en un radio de 100km
     result = query_overpass_api(lat, lon, radius=100000, feature_type='city')
-    from geopy.distance import geodesic
     
     if not result or 'elements' not in result or len(result['elements']) == 0:
         return None
@@ -147,7 +145,6 @@ def get_elevation_from_api(lat, lon):
     """
     try:
         # Usar Open-Elevation API
-        import requests
         url = f"https://api.open-elevation.com/api/v1/lookup?locations={lat},{lon}"
         response = requests.get(url, timeout=10)
         

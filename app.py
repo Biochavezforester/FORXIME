@@ -15,6 +15,7 @@ import os
 from modules import data_processing, statistical_analysis, temporal_analysis
 from modules import environmental_vars, anthropogenic_impact, sampling_evaluation
 from modules import visualization, interpretation, livestock_management, species_assessment, hunting_info
+from modules import taxonomy_manager, spatial_models, hydration_helper
 from utils import validators, geospatial, helpers
 from utils.assets_base64 import LOGO_B64
 
@@ -108,6 +109,7 @@ with st.sidebar:
         t('menu_home'),
         t('menu_process'),
         t('menu_results'),
+        "🏷️ Gestor de Taxonomía",
         t('menu_instructions'),
         t('menu_donations')
     ]
@@ -541,6 +543,10 @@ elif page == t('menu_process'):
                 status_text.empty()
                 st.error(f"❌ Error durante el procesamiento: {str(e)}")
                 st.exception(e)
+
+# Página de Taxonomía
+elif page == "🏷️ Gestor de Taxonomía":
+    taxonomy_manager.render_taxonomy_manager()
 
 # Página de Resultados
 elif page == t('menu_results'):

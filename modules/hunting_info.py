@@ -11,7 +11,7 @@ GAME_SPECIES = {
     # Ungulados
     'ungulates': {
         'odocoileus virginianus': {
-            'nombre_comun': 'Venado Cola Blanca',
+            'nombre_comun': 'Venado de Cola Blanca',
             'temporada': 'Noviembre - Febrero',
             'cuota': 'Variable por UMA',
             'metodo': 'Rifle, arco',
@@ -19,7 +19,7 @@ GAME_SPECIES = {
             'manejo': 'UMA intensivo o extensivo'
         },
         'pecari tajacu': {
-            'nombre_comun': 'Pecarí de Collar / Jabalí de Collar',
+            'nombre_comun': 'Pecarí de Collar',
             'temporada': 'Octubre - Marzo',
             'cuota': 'Variable por UMA',
             'metodo': 'Rifle',
@@ -30,7 +30,7 @@ GAME_SPECIES = {
     # Aves
     'birds': {
         'meleagris gallopavo': {
-            'nombre_comun': 'Guajolote Silvestre',
+            'nombre_comun': 'Guajolote Norteño',
             'temporada': 'Marzo - Abril',
             'cuota': '1-2 por temporada',
             'metodo': 'Escopeta',
@@ -45,19 +45,12 @@ GAME_SPECIES = {
             'valor_economico': 'Medio',
             'manejo': 'Caza deportiva'
         }
-    },
-    # Carnívoros (solo control)
-    'predators': {
-        'canis latrans': {
-            'nombre_comun': 'Coyote',
-            'temporada': 'Todo el año (control)',
-            'cuota': 'Sin límite (control de daños)',
-            'metodo': 'Rifle',
-            'valor_economico': 'Bajo',
-            'manejo': 'Control de depredadores'
-        }
     }
 }
+
+# NOTA: Coyote (Canis latrans) NO es especie cinegética en México.
+# Es una especie de control de daños, no de caza deportiva.
+# Especies como Jaguar, Puma, Ocelote están PROTEGIDAS y no pueden cazarse.
 
 
 def identify_game_species(df):

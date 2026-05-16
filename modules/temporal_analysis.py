@@ -2,10 +2,12 @@
 Módulo de análisis temporal para FORXIME/2
 Incluye patrones de actividad y solapamiento temporal (Ridout-Linkie y KDE)
 """
-# Imports pesados movidos dentro de las funciones (Lazy Loading)
 import pandas as pd
 import numpy as np
+from scipy import stats
+from scipy.integrate import simpson
 import warnings
+import streamlit as st
 warnings.filterwarnings('ignore')
 
 
@@ -108,6 +110,7 @@ def classify_activity_pattern(hours):
         return 'Catémero'
 
 
+@st.cache_data(show_spinner=False)
 def calculate_activity_pattern(df, species):
     """
     Calcula el patrón de actividad para una especie
@@ -184,11 +187,9 @@ def calculate_overlap_coefficient_delta(times1_radians, times2_radians, estimato
     
     if estimator == 'delta1':
         # Δ1 = integral de min(f1, f2)
-        from scipy.integrate import simpson
         overlap = simpson(np.minimum(density1_interp, density2_interp), grid)
     else:  # delta4
         # Δ4 = integral de sqrt(f1 * f2) * 2
-        from scipy.integrate import simpson
         overlap = 2 * simpson(np.sqrt(density1_interp * density2_interp), grid)
     
     return min(overlap, 1.0)  # Asegurar que esté en [0, 1]
@@ -259,7 +260,6 @@ def calculate_kernel_overlap(times1_radians, times2_radians):
     density2_interp = np.interp(grid, grid2, density2)
     
     # Calcular área de solapamiento
-    from scipy.integrate import simpson
     overlap_area = simpson(np.minimum(density1_interp, density2_interp), grid)
     
     # Calcular áreas totales
@@ -279,6 +279,7 @@ def calculate_kernel_overlap(times1_radians, times2_radians):
     }
 
 
+@st.cache_data(show_spinner=False)
 def analyze_temporal_overlap(df, species1, species2):
     """
     Análisis completo de solapamiento temporal entre dos especies

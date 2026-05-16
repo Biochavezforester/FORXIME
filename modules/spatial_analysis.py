@@ -8,15 +8,53 @@ import numpy as np
 from scipy.stats import gaussian_kde
 from scipy.spatial.distance import cdist
 from sklearn.neighbors import KernelDensity
+import streamlit as st
 
 
-def calculate_rai_by_location(df, species):
+def calculate_camera_effort(df):
+    """
+    Calcula el esfuerzo (días de muestreo) por cámara una sola vez.
+    OPTIMIZACIÓN: Evita recalcular esto para cada especie.
+    """
+    # Identificar columna de sitio
+    site_col = 'Sitio_Agrupado' if 'Sitio_Agrupado' in df.columns else 'Sitio' if 'Sitio' in df.columns else None
+    
+    # Columnas para agrupar (incluir X, Y si existen)
+    group_cols = ['Camara']
+    if 'Coordenada_X_UTM' in df.columns and 'Coordenada_Y_UTM' in df.columns:
+        group_cols.extend(['Coordenada_X_UTM', 'Coordenada_Y_UTM'])
+    if site_col:
+        group_cols.append(site_col)
+
+    # Asegurar que Fecha sea datetime antes de agrupar para máximo performance
+    if not pd.api.types.is_datetime64_any_dtype(df['Fecha']):
+        df_temp = df.copy()
+        df_temp['Fecha'] = pd.to_datetime(df_temp['Fecha'], errors='coerce')
+    else:
+        df_temp = df
+
+    # Calcular días de muestreo por cámara
+    camera_days = df_temp.groupby(group_cols, observed=True).agg({
+        'Fecha': lambda x: (x.max() - x.min()).days + 1
+    }).reset_index()
+    
+    # Renombrar columnas para salida estándar
+    cols_map = {'Coordenada_X_UTM': 'X', 'Coordenada_Y_UTM': 'Y', 'Fecha': 'Dias_Muestreo'}
+    if site_col:
+        cols_map[site_col] = 'Sitio'
+    
+    camera_days = camera_days.rename(columns=cols_map)
+    return camera_days
+
+
+def calculate_rai_by_location(df, species, camera_effort=None):
     """
     Calcula el RAI (Relative Abundance Index) para cada ubicación de cámara
     
     Args:
         df: DataFrame con datos de cámaras trampa
         species: Nombre de la especie a analizar
+        camera_effort: DataFrame precalculado con esfuerzo por cámara (opcional)
         
     Returns:
         DataFrame con coordenadas y RAI por cámara
@@ -25,31 +63,40 @@ def calculate_rai_by_location(df, species):
     species_df = df[df['Especie_Categoria'] == species].copy()
     
     if len(species_df) == 0:
-        return None
+        # Retornar DataFrame vacío con la estructura esperada
+        cols = ['Camara', 'RAI', 'Eventos', 'Dias_Muestreo']
+        if 'Coordenada_X_UTM' in df.columns: cols.extend(['X', 'Y'])
+        if 'Sitio' in df.columns or 'Sitio_Agrupado' in df.columns: cols.append('Sitio')
+        return pd.DataFrame(columns=cols)
     
-    # Calcular días de muestreo por cámara
-    camera_days = df.groupby(['Camara', 'Coordenada_X_UTM', 'Coordenada_Y_UTM']).agg({
-        'Fecha': lambda x: (pd.to_datetime(x.max()) - pd.to_datetime(x.min())).days + 1
-    }).reset_index()
-    camera_days.columns = ['Camara', 'X', 'Y', 'Dias_Muestreo']
+    # 1. Obtener Esfuerzo (desde el argumento o calculándolo si no existe)
+    if camera_effort is None:
+        camera_effort = calculate_camera_effort(df)
     
-    # Contar eventos independientes por cámara para la especie
-    species_events = species_df.groupby(['Camara']).agg({
+    # 2. Contar eventos independientes por cámara para la especie
+    species_events = species_df.groupby(['Camara'], observed=True).agg({
         'Eventos_Independientes': 'sum'
     }).reset_index()
     species_events.columns = ['Camara', 'Eventos']
     
-    # Combinar datos
-    rai_data = camera_days.merge(species_events, on='Camara', how='left')
+    # 3. Combinar datos
+    rai_data = camera_effort.merge(species_events, on='Camara', how='left')
     rai_data['Eventos'] = rai_data['Eventos'].fillna(0)
     
-    # Calcular RAI (eventos por 100 días-trampa)
+    # 4. Calcular RAI (eventos por 100 días-trampa)
+    # Evitar división por cero
+    rai_data['Dias_Muestreo'] = rai_data['Dias_Muestreo'].replace(0, 1)
     rai_data['RAI'] = (rai_data['Eventos'] / rai_data['Dias_Muestreo']) * 100
     
     # Asegurar que no haya valores infinitos o NaN
     rai_data['RAI'] = rai_data['RAI'].replace([np.inf, -np.inf], 0).fillna(0)
     
-    return rai_data[['Camara', 'X', 'Y', 'RAI', 'Eventos', 'Dias_Muestreo']]
+    # Definir columnas finales a retornar
+    final_cols = ['Camara', 'RAI', 'Eventos', 'Dias_Muestreo']
+    if 'X' in rai_data.columns: final_cols.extend(['X', 'Y'])
+    if 'Sitio' in rai_data.columns: final_cols.append('Sitio')
+    
+    return rai_data[final_cols]
 
 
 def calculate_optimal_bandwidth(points, method='scott'):
@@ -150,7 +197,7 @@ def perform_kde_interpolation(points, values, grid_x, grid_y, bandwidth='auto'):
     return z
 
 
-def create_abundance_grid(df, species, grid_resolution=100, bandwidth='auto'):
+def create_abundance_grid(df, species, grid_resolution=100, bandwidth='auto', camera_effort=None):
     """
     Genera grilla de abundancia interpolada para una especie
     
@@ -159,12 +206,13 @@ def create_abundance_grid(df, species, grid_resolution=100, bandwidth='auto'):
         species: Nombre de la especie
         grid_resolution: Número de puntos en cada dimensión de la grilla
         bandwidth: 'auto' o valor numérico para KDE
+        camera_effort: Esfuerzo precalculado (opcional)
         
     Returns:
         dict con grillas X, Y, Z y datos de cámaras
     """
     # Calcular RAI por ubicación
-    rai_data = calculate_rai_by_location(df, species)
+    rai_data = calculate_rai_by_location(df, species, camera_effort=camera_effort)
     
     if rai_data is None or len(rai_data) == 0:
         return None
@@ -223,8 +271,11 @@ def get_species_abundance_data(df, species_list):
     """
     abundance_data = {}
     
+    # OPTIMIZACIÓN: Calcular esfuerzo una sola vez para todas las especies
+    effort_df = calculate_camera_effort(df)
+    
     for species in species_list:
-        data = create_abundance_grid(df, species)
+        data = create_abundance_grid(df, species, camera_effort=effort_df)
         if data is not None:
             abundance_data[species] = data
     
