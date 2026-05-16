@@ -171,26 +171,36 @@ def create_activity_pattern_plot(activity_data, species, plot_type='circular'):
         else:
             return None
     
-    # Convert 'Hora' to numeric if it's in string format (e.g., "14:30:00")
-    if activity_data['Hora'].dtype == 'object' or activity_data['Hora'].dtype == 'string':
-        def parse_time_to_hours(time_str):
-            """Convert time string 'HH:MM:SS' to decimal hours"""
-            try:
-                if pd.isna(time_str):
-                    return np.nan
-                if isinstance(time_str, str):
-                    parts = time_str.split(':')
-                    hours = int(parts[0])
-                    minutes = int(parts[1]) if len(parts) > 1 else 0
-                    seconds = int(parts[2]) if len(parts) > 2 else 0
-                    return hours + minutes/60 + seconds/3600
-                else:
-                    return float(time_str)
-            except:
+    # Convert 'Hora' to numeric decimal hours — handles str, datetime.time, and numeric
+    import datetime as dt
+    def parse_time_to_hours(time_val):
+        """Convert time value (string, datetime.time, or numeric) to decimal hours"""
+        try:
+            if time_val is None:
                 return np.nan
-        
-        activity_data = activity_data.copy()
-        activity_data['Hora'] = activity_data['Hora'].apply(parse_time_to_hours)
+            # pandas NaT / float NaN
+            try:
+                if pd.isna(time_val):
+                    return np.nan
+            except (TypeError, ValueError):
+                pass
+            # datetime.time object (e.g. datetime.time(14, 30, 0))
+            if isinstance(time_val, dt.time):
+                return time_val.hour + time_val.minute / 60 + time_val.second / 3600
+            # string (e.g. "14:30:00")
+            if isinstance(time_val, str):
+                parts = time_val.split(':')
+                h = int(parts[0])
+                m = int(parts[1]) if len(parts) > 1 else 0
+                s = int(float(parts[2])) if len(parts) > 2 else 0
+                return h + m / 60 + s / 3600
+            # Already numeric
+            return float(time_val)
+        except Exception:
+            return np.nan
+
+    activity_data = activity_data.copy()
+    activity_data['Hora'] = activity_data['Hora'].apply(parse_time_to_hours)
         
     sp_data = activity_data[activity_data['Especie_Categoria'] == species]
     if sp_data.empty:
