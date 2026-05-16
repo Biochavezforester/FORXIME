@@ -742,22 +742,31 @@ elif page == t('menu_results'):
                 if selected_species:
                     pattern_data = results['activity_patterns'][selected_species]
                     
-                    fig_activity = visualization.create_activity_pattern_plot(wildlife_df, selected_species)
-                    st.plotly_chart(fig_activity, use_container_width=True)
+                    plot_type = st.radio(
+                        "Tipo de gráfica", 
+                        ["circular", "linear"], 
+                        horizontal=True,
+                        key="activity_plot_type"
+                    )
+                    fig_activity = visualization.create_activity_pattern_plot(wildlife_df, selected_species, plot_type=plot_type)
+                    
+                    if fig_activity is not None:
+                        st.plotly_chart(fig_activity, use_container_width=True)
+                    else:
+                        st.warning(f"No hay suficientes registros de hora validos para graficar el patron de {selected_species}.")
                     
                     col1, col2, col3 = st.columns(3)
-                    col1.metric("Patrón", pattern_data['pattern'])
+                    col1.metric("Patron", pattern_data['pattern'])
                     
-                    # Convert decimal hour to HH:MM format
                     peak_hour = pattern_data['mean_hour']
                     hours = int(peak_hour)
                     minutes = int((peak_hour - hours) * 60)
                     time_str = f"{hours:02d}:{minutes:02d}"
                     col2.metric("Hora Pico", time_str)
                     
-                    col3.metric("Concentración", f"{pattern_data['concentration']:.3f}")
+                    col3.metric("Concentracion", f"{pattern_data['concentration']:.3f}")
             else:
-                st.info("No hay suficientes datos para análisis temporal")
+                st.info("No hay suficientes datos para analisis temporal")
         
         # Tab 5: Solapamiento Temporal
         elif selected_analysis == "🔄 Solapamiento":
