@@ -742,7 +742,7 @@ elif page == t('menu_results'):
                 if selected_species:
                     pattern_data = results['activity_patterns'][selected_species]
                     
-                    fig_activity = visualization.create_activity_pattern_plot(pattern_data, selected_species)
+                    fig_activity = visualization.create_activity_pattern_plot(wildlife_df, selected_species)
                     st.plotly_chart(fig_activity, use_container_width=True)
                     
                     col1, col2, col3 = st.columns(3)
