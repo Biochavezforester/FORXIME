@@ -652,23 +652,61 @@ elif page == t('menu_results'):
         elif selected_analysis == "🌳 Dendrograma":
             st.header("Dendrograma de Bray-Curtis")
             
-            dend_data = results['dendrogram']
-            
-            fig_dend = visualization.create_dendrogram_plot(
-                dend_data['linkage_matrix'],
-                dend_data['site_names']
-            )
-            
-            st.pyplot(fig_dend)
-            
-            # Interpretación
-            with st.expander("📖 " + t('interpretation')):
-                interp = interpretation.interpret_dendrogram(
-                    dend_data['distance_matrix'],
-                    dend_data['site_names'],
-                    st.session_state.language
+            with st.expander("🔧 Configuración del Dendrograma", expanded=True):
+                st.markdown("Ajusta qué especies y qué transformaciones aplicar para el análisis de similitud.")
+                
+                # --- NUEVO: Filtrado de especies para Dendrograma ---
+                all_species_dend = sorted(wildlife_df['Especie_Categoria'].unique())
+                excluded_dend = st.multiselect(
+                    "Selecciona especies a EXCLUIR del dendrograma",
+                    options=all_species_dend,
+                    default=[],
+                    key="dend_exclude_v2"
                 )
-                st.markdown(interp)
+                
+                # 2. Transformación
+                apply_hellinger = st.checkbox(
+                    "Aplicar Transformación de Hellinger", 
+                    value=False,
+                    help="Recomendado para distancias de Bray-Curtis. Reduce el peso de especies súper-abundantes y resalta la composición real."
+                )
+            
+            # Filtrar y generar usando el df local
+            if excluded_dend:
+                dend_df = wildlife_df[~wildlife_df['Especie_Categoria'].isin(excluded_dend)]
+            else:
+                dend_df = wildlife_df
+            
+            # Determinar columna de sitio
+            site_col = 'Sitio_Agrupado' if 'Sitio_Agrupado' in dend_df.columns else 'Sitio'
+            
+            if site_col not in dend_df.columns or dend_df[site_col].nunique() < 2:
+                st.warning("Se necesitan al menos 2 sitios con datos para generar el dendrograma.")
+            else:
+                if st.button("🌳 Generar Dendrograma", type="primary", key="btn_generar_dend"):
+                    with st.spinner("Generando dendrograma..."):
+                        dend_data = statistical_analysis.create_bray_curtis_dendrogram(dend_df, transform_hellinger=apply_hellinger)
+                    st.session_state['last_dend_data'] = dend_data
+
+                dend_data = st.session_state.get('last_dend_data', results.get('dendrogram'))
+                
+                if dend_data:
+                    fig_dend = visualization.create_dendrogram_plot(
+                        dend_data['linkage_matrix'],
+                        dend_data['site_names']
+                    )
+                    st.pyplot(fig_dend)
+                    
+                    # Interpretación
+                    with st.expander("📖 " + t('interpretation')):
+                        interp = interpretation.interpret_dendrogram(
+                            dend_data['distance_matrix'],
+                            dend_data['site_names'],
+                            st.session_state.language
+                        )
+                        st.markdown(interp)
+                else:
+                    st.error("No se pudo generar el dendrograma con los filtros seleccionados.")
         
         # Tab 3: Abundancia
         elif selected_analysis == "📈 Abundancia":
