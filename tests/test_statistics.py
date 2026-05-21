@@ -170,7 +170,7 @@ class TestPielouEvenness:
 class TestBiodiversityIndices:
     def test_returns_all_keys(self, sample_dataframe):
         result = calculate_biodiversity_indices(sample_dataframe)
-        expected_keys = {"Shannon", "Simpson", "Richness", "Pielou_Evenness", "Total_Individuals"}
+        expected_keys = {"Shannon", "Simpson", "Richness", "Pielou_Evenness", "Total_Individuals", "Chao_Shannon", "Chao_Simpson"}
         assert set(result.keys()) == expected_keys
 
     def test_values_are_numeric(self, sample_dataframe):
