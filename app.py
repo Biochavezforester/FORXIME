@@ -30,6 +30,10 @@ st.set_page_config(
 # CSS personalizado
 st.markdown("""
 <style>
+    #MainMenu {visibility: hidden;}
+    header {visibility: hidden;}
+    footer {visibility: hidden;}
+    
     .main-header {
         font-size: 2.5rem;
         font-weight: bold;
