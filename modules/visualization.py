@@ -19,7 +19,10 @@ import re
 def is_scientific_name(name):
     """Detecta si un nombre es científico basándose en heurísticas"""
     if not isinstance(name, str): return False
-    exclude = ['vacío', 'vacio', 'humano', 'desconocido', 'vehículo', 'otro', 'antropogénico', 'sin identificar', 'sin fauna', 'nada', 'none']
+    # Agregar animales domésticos y términos comunes a la exclusión
+    exclude = ['vacío', 'vacio', 'humano', 'desconocido', 'vehículo', 'otro', 'antropogénico', 
+               'sin identificar', 'sin fauna', 'nada', 'none', 'doméstico', 'domestico', 
+               'perro', 'gato', 'caballo', 'vaca', 'cerdo', 'gallina', 'oveja', 'borrego', 'burro', 'mula']
     if any(e in name.lower() for e in exclude):
         return False
     words = name.split()
