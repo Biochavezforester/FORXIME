@@ -267,7 +267,7 @@ elif page == t('menu_process'):
                 
                 # Mostrar preview
                 st.subheader("Vista Previa de Datos")
-                st.dataframe(result.head(10))
+                st.dataframe(helpers.format_species_dataframe(result.head(10)))
                 
                 # Métricas básicas
                 metrics = data_processing.calculate_basic_metrics(result)
@@ -647,9 +647,9 @@ elif page == t('menu_results'):
             st.subheader("Biodiversidad por Sitio")
             if excluded_categories:
                 biodiv_by_site = statistical_analysis.calculate_biodiversity_by_site(filtered_df)
-                st.dataframe(biodiv_by_site)
+                st.dataframe(helpers.format_species_dataframe(biodiv_by_site))
             else:
-                st.dataframe(results['biodiversity_by_site'])
+                st.dataframe(helpers.format_species_dataframe(results['biodiversity_by_site']))
         
         # Tab 2: Dendrograma
         elif selected_analysis == "🌳 Dendrograma":
@@ -755,7 +755,7 @@ elif page == t('menu_results'):
             fig_rai = visualization.create_rai_chart(rai_filtered)
             st.plotly_chart(fig_rai, use_container_width=True)
             
-            st.dataframe(rai_filtered)
+            st.dataframe(helpers.format_species_dataframe(rai_filtered))
             
             # Gráfica de abundancia
             st.subheader("Abundancia por Especie")
@@ -936,7 +936,7 @@ elif page == t('menu_results'):
             
             # Por sitio
             st.subheader("Impacto por Sitio")
-            st.dataframe(results['anthropogenic_by_site'])
+            st.dataframe(helpers.format_species_dataframe(results['anthropogenic_by_site']))
             
             # Interpretación
             with st.expander("📖 " + t('interpretation')):
@@ -948,7 +948,7 @@ elif page == t('menu_results'):
             st.header(t('sampling_evaluation'))
             
             st.subheader("Esfuerzo de Muestreo")
-            st.dataframe(results['sampling_effort'])
+            st.dataframe(helpers.format_species_dataframe(results['sampling_effort']))
             
             st.markdown("---")
             
@@ -1213,7 +1213,7 @@ elif page == t('menu_results'):
             conservation_priorities = results.get('conservation_priorities')
             
             if conservation_priorities is not None and len(conservation_priorities) > 0:
-                st.dataframe(conservation_priorities)
+                st.dataframe(helpers.format_species_dataframe(conservation_priorities))
                 
                 # Gráfica de prioridades
                 import plotly.express as px
@@ -1342,7 +1342,7 @@ elif page == t('menu_results'):
                 st.subheader("📋 Especies Cinegéticas Detectadas")
                 
                 game_species_df = hunting_plan['species_list']
-                st.dataframe(game_species_df)
+                st.dataframe(helpers.format_species_dataframe(game_species_df))
                 
                 # Calendario cinegético
                 st.subheader("📅 Calendario de Temporadas")
@@ -1490,7 +1490,7 @@ elif page == t('menu_livestock'):
             st.write(report['carrying_capacity'])
             # Mostrar tabla de abundancia de ganado si hay
             if 'livestock_data' in report:
-                st.dataframe(report['livestock_data'])
+                st.dataframe(helpers.format_species_dataframe(report['livestock_data']))
         
         with tabs[1]:
             st.write(report['conflicts'])
