@@ -530,10 +530,11 @@ def create_rai_chart(rai_df, top_n=200):
     """
     top_rai = rai_df.head(top_n)
     
+    y_labels = [italics_scientific(name) for name in top_rai['Especie']]
     fig = go.Figure(data=[
         go.Bar(
             x=top_rai['RAI'],
-            y=top_rai['Especie'],
+            y=y_labels,
             orientation='h',
             marker=dict(
                 color=top_rai['RAI'],
@@ -680,9 +681,10 @@ def create_occupancy_comparison_chart(occupancy_df, royle_nichols_results):
     # Crear gráfica
     fig = go.Figure()
     
+    x_labels = [italics_scientific(name) for name in species_list]
     fig.add_trace(go.Bar(
         name='Ocupación Naive',
-        x=species_list,
+        x=x_labels,
         y=naive_occ,
         marker_color='lightblue',
         text=[f'{v:.2%}' for v in naive_occ],
@@ -694,7 +696,7 @@ def create_occupancy_comparison_chart(occupancy_df, royle_nichols_results):
     if valid_rn:
         fig.add_trace(go.Bar(
             name='Ocupación Royle-Nichols (ψ)',
-            x=species_list,
+            x=x_labels,
             y=rn_occ,
             marker_color='darkblue',
             text=[f'{v:.2%}' if v is not None else 'N/A' for v in rn_occ],
@@ -759,10 +761,11 @@ def create_lambda_bar_chart(royle_nichols_results, top_n=50):
     
     lambda_df = pd.DataFrame(lambda_data).sort_values('Lambda', ascending=False).head(top_n)
     
+    y_labels = [italics_scientific(name) for name in lambda_df['Especie']]
     fig = go.Figure(data=[
         go.Bar(
             x=lambda_df['Lambda'],
-            y=lambda_df['Especie'],
+            y=y_labels,
             orientation='h',
             marker=dict(
                 color=lambda_df['Lambda'],

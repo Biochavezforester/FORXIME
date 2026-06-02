@@ -273,10 +273,7 @@ def clean_species_name(name):
         
     cleaned_words = [words[0].capitalize()]
     for word in words[1:]:
-        if word.lower() in preposiciones:
-            cleaned_words.append(word.lower())
-        else:
-            cleaned_words.append(word.capitalize())
+        cleaned_words.append(word.lower())
     
     return ' '.join(cleaned_words)
 
