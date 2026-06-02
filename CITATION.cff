@@ -4,7 +4,7 @@ authors:
 - family-names: "Chavez Gurrola"
   given-names: "Erick Elio"
   orcid: "https://orcid.org/0009-0007-7054-6999"
-title: "FORXIME: Plataforma Profesional de Análisis de Datos de Cámaras Trampa"
+title: "FORXIME: Plataforma de Análisis de Datos de Cámaras Trampa"
 version: 2.0.0
 date-released: 2026-04-05
 url: "https://github.com/Biochavezforester/FORXIME2"
