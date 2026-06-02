@@ -308,13 +308,16 @@ def create_temporal_overlap_plot(overlap_data):
     
     fig = go.Figure()
     
+    sp1_disp = italics_scientific(sp1)
+    sp2_disp = italics_scientific(sp2)
+    
     # Especie 1
     theta1 = (pattern1['grid_hours'] / 24) * 360
     fig.add_trace(go.Scatterpolar(
         r=pattern1['density'],
         theta=theta1,
         fill='toself',
-        name=sp1,
+        name=sp1_disp,
         line=dict(color='#1f77b4', width=2),
         opacity=0.6
     ))
@@ -325,7 +328,7 @@ def create_temporal_overlap_plot(overlap_data):
         r=pattern2['density'],
         theta=theta2,
         fill='toself',
-        name=sp2,
+        name=sp2_disp,
         line=dict(color='#ff7f0e', width=2),
         opacity=0.6
     ))
@@ -343,7 +346,7 @@ def create_temporal_overlap_plot(overlap_data):
                 direction='clockwise'
             )
         ),
-        title=f'Solapamiento Temporal: {sp1} vs {sp2}<br>' +
+        title=f'Solapamiento Temporal: {sp1_disp} vs {sp2_disp}<br>' +
               f'Coef. Ridout-Linkie (Δ): {ridout_coef:.3f} | Solapamiento KDE: {kernel_pct:.1f}%',
         showlegend=True,
         height=500

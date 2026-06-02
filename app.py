@@ -873,7 +873,10 @@ elif page == t('menu_results'):
                     st.subheader("📊 Resultados de Solapamiento Temporal")
                     
                     for overlap_data in st.session_state.on_demand_overlaps:
-                        st.subheader(f"{overlap_data['species1']} vs {overlap_data['species2']}")
+                        # Format species names for subheader
+                        sp1_disp = f"*{overlap_data['species1']}*" if visualization.is_scientific_name(overlap_data['species1']) else overlap_data['species1']
+                        sp2_disp = f"*{overlap_data['species2']}*" if visualization.is_scientific_name(overlap_data['species2']) else overlap_data['species2']
+                        st.subheader(f"{sp1_disp} vs {sp2_disp}")
                         
                         fig_overlap = visualization.create_temporal_overlap_plot(overlap_data)
                         st.plotly_chart(fig_overlap, use_container_width=True)
