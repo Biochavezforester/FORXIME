@@ -324,15 +324,24 @@ def display_dataframe(df, **kwargs):
             return False
             
     df_disp = df.copy()
-    col_config = kwargs.get('column_config', {})
     target_cols = [col for col in ['Especie', 'Especie_Categoria'] if col in df_disp.columns]
+    
+    def to_italic_unicode(text):
+        if not isinstance(text, str): return text
+        res = []
+        for c in text:
+            if 'a' <= c <= 'z':
+                if c == 'h': res.append('\u210E')
+                else: res.append(chr(0x1D44E + ord(c) - ord('a')))
+            elif 'A' <= c <= 'Z':
+                res.append(chr(0x1D434 + ord(c) - ord('A')))
+            else:
+                res.append(c)
+        return ''.join(res)
     
     if target_cols:
         for col in target_cols:
-            df_disp[col] = df_disp[col].apply(lambda x: f"*{x}*" if pd.notna(x) and is_scientific_name(str(x)) else x)
-            if col not in col_config:
-                col_config[col] = st.column_config.MarkdownColumn(col)
-        kwargs['column_config'] = col_config
+            df_disp[col] = df_disp[col].apply(lambda x: to_italic_unicode(str(x)) if pd.notna(x) and is_scientific_name(str(x)) else x)
                 
     st.dataframe(df_disp, **kwargs)
 
