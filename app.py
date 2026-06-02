@@ -960,12 +960,14 @@ elif page == t('menu_results'):
             
             spacing_issues = sampling_evaluation.detect_camera_spacing_issues(st.session_state.processed_data)
             
+            st.markdown("### 1. Detección de Redundancia de Equipos")
+            min_dist_val = st.session_state.get('grouping_radius', 10)
             if spacing_issues['has_issues']:
-                st.warning(f"⚠️ Se detectaron {spacing_issues['n_close_pairs']} pares de cámaras muy cercanas (< 10m)")
+                st.warning(f"⚠️ Se detectaron {spacing_issues['n_close_pairs']} pares de cámaras redundantes (< {min_dist_val}m)")
                 
                 # Métricas
                 col1, col2, col3 = st.columns(3)
-                col1.metric("Grupos de cámaras cercanas", spacing_issues['n_groups'])
+                col1.metric("Grupos redundantes", spacing_issues['n_groups'])
                 col2.metric("Distancia promedio", f"{spacing_issues['avg_distance']:.1f}m")
                 col3.metric("Distancia mínima", f"{spacing_issues['min_distance']:.1f}m")
                 
@@ -974,35 +976,43 @@ elif page == t('menu_results'):
                 helpers.display_dataframe(spacing_issues['grouped_cameras'])
                 
                 # Recomendaciones específicas
-                st.markdown("**Recomendaciones:**")
+                st.markdown("**Notas de Redundancia:**")
                 for rec in spacing_issues['recommendations']:
                     st.info(rec)
+            else:
+                st.success(f"✅ No se detectaron cámaras redundantes en la misma estación (separación > {min_dist_val}m).")
+                st.info("💡 Nota: Esto solo verifica que no haya cámaras redundantes apuntando al mismo punto exacto. No asegura la independencia ecológica.")
+
+            st.markdown("### 2. Independencia Espacial Ecológica")
+            eco_spacing = sampling_evaluation.evaluate_camera_spacing(st.session_state.processed_data)
+            
+            if 'average_min_distance_m' in eco_spacing:
+                avg_dist = eco_spacing['average_min_distance_m']
                 
-                # Explicación adicional
-                with st.expander("ℹ️ ¿Por qué es importante el espaciamiento?"):
+                if avg_dist < 100:
+                    st.error(f"🚨 **{eco_spacing['evaluation']}**")
+                elif avg_dist < 500:
+                    st.warning(f"⚠️ **{eco_spacing['evaluation']}**")
+                else:
+                    st.success(f"✅ **{eco_spacing['evaluation']}**")
+                
+                st.metric("Distancia Mínima Promedio entre Sitios", f"{avg_dist:.0f} metros")
+                
+                for rec in eco_spacing['recommendations']:
+                    st.info("💡 " + rec['recommendation'])
+                
+                with st.expander("ℹ️ Criterios de Independencia Espacial"):
                     st.markdown("""
-                    ### Importancia del Espaciamiento de Cámaras
+                    Para evitar contar al mismo individuo (pseudoréplica espacial) en diferentes sitios durante el mismo período, la distancia entre cámaras debe ajustarse a la ecología de la especie objetivo:
                     
-                    **Independencia Espacial:**
-                    - Cámaras muy cercanas (<10m) detectan los mismos individuos
-                    - Se consideran el mismo sitio de muestreo
-                    - Reduce el número de réplicas independientes
+                    - **Especies pequeñas** (roedores, aves, reptiles): 50 - 100 metros
+                    - **Especies medianas** (venados, pecaríes, coyotes): 200 - 500 metros
+                    - **Especies grandes** (jaguar, puma, tapir, oso): 500 - 2,000+ metros
                     
-                    **Recomendaciones Generales:**
-                    - **Especies pequeñas** (roedores, aves): 50-100m
-                    - **Especies medianas** (venados, coyotes): 200-500m
-                    - **Especies grandes** (jaguar, puma): 500-1000m
-                    
-                    **Excepciones Válidas:**
-                    - Múltiples ángulos del mismo sendero
-                    - Estudio de comportamiento específico
-                    - Validación de detecciones
-                    
-                    En estos casos, las cámaras cercanas son intencionales y aceptables.
+                    Si su muestreo tiene distancias cortas, los resultados para fauna grande y móvil deben interpretarse con cautela, ya que no son eventos estadísticamente independientes.
                     """)
             else:
-                st.success("✅ Todas las cámaras están bien espaciadas (> 10m de separación)")
-                st.info("💡 El espaciamiento actual es adecuado para asegurar independencia espacial entre sitios.")
+                st.warning(eco_spacing.get('evaluation', 'No hay suficientes cámaras para evaluar la independencia espacial.'))
             
             st.markdown("---")
             
