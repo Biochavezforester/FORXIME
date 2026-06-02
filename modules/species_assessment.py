@@ -98,6 +98,32 @@ BIOGEOGRAPHIC_STATUS = {
     # Por defecto, si no está en ninguna lista, se considera 'native' (nativa)
 }
 
+# Especies excluidas de evaluaciones de conservación (humanos y animales domésticos)
+EXCLUDED_FROM_CONSERVATION = [
+    'homo sapiens', 'humano', 'human', 'persona',
+    'bos taurus', 'vaca', 'ganado', 'bovino', 'cow',
+    'equus caballus', 'caballo', 'horse', 'equino', 'yegua',
+    'canis familiaris', 'perro doméstico', 'perro feral',
+    'felis catus', 'gato doméstico', 'gato feral',
+    'sus scrofa domesticus', 'cerdo doméstico', 'puerco',
+    'ovis aries', 'oveja', 'borrego',
+    'capra hircus', 'cabra', 'chivo',
+    'gallus gallus', 'gallina', 'pollo',
+    'meleagris gallopavo domesticus', 'guajolote doméstico',
+    'equus asinus', 'burro', 'asno', 'mula'
+]
+
+def is_excluded_species(species_name):
+    """Verifica si la especie es humano o animal doméstico para excluir de evaluaciones."""
+    species_lower = str(species_name).lower()
+    
+    # Coincidencia exacta o palabra completa para evitar falsos positivos
+    import re
+    for ex_sp in EXCLUDED_FROM_CONSERVATION:
+        if re.search(r'\b' + re.escape(ex_sp) + r'\b', species_lower):
+            return True
+    return False
+
 
 def assess_species_conservation_status(species_name):
     """
@@ -320,6 +346,9 @@ def generate_conservation_priorities_report(df, language='es'):
     priorities = []
     
     for species in df['Especie_Categoria'].unique():
+        if is_excluded_species(species):
+            continue
+            
         score_data = calculate_conservation_priority_score(df, species)
         
         # Obtener clasificaciones adicionales
@@ -365,6 +394,9 @@ def identify_critical_habitats(df):
         threatened_species = []
         
         for species in site_data['Especie_Categoria'].unique():
+            if is_excluded_species(species):
+                continue
+                
             status = assess_species_conservation_status(species)
             if status in ['CR', 'EN', 'VU']:
                 threatened_count += 1

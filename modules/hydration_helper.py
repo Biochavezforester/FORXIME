@@ -136,16 +136,21 @@ def hydrate_all_results(results, wildlife_df, processed_df, status_fn=None, enab
         try:
             from modules import species_assessment
             assessment = {}
-            # Evaluar TODAS las especies seleccionadas, no solo una lista predefinida
+            # Evaluar TODAS las especies seleccionadas, excluyendo humanos y domésticos para listas de conservación
             all_species = wildlife_df['Especie_Categoria'].unique()
             for sp in all_species:
+                if species_assessment.is_excluded_species(sp):
+                    continue
+                nom_cat = species_assessment.assess_nom059_status(sp)
+                bg_cat = species_assessment.assess_biogeographic_status(sp)
                 assessment[sp] = {
-                    'nom_059': species_assessment.get_nom059_status(sp),
-                    'iucn': species_assessment.get_iucn_status(sp),
-                    'biogeographic': species_assessment.get_biogeographic_status(sp)
+                    'nom_059': species_assessment.get_nom059_description(nom_cat, 'es'),
+                    'iucn': species_assessment.assess_species_conservation_status(sp),
+                    'biogeographic': species_assessment.get_biogeographic_description(bg_cat, 'es')
                 }
             results['species_assessment'] = assessment
-        except:
+        except Exception as e:
+            print(f"Error en species_assessment: {e}")
             results['species_assessment'] = {}
 
     # 11. [NUEVO] Fichas Técnicas por Especie

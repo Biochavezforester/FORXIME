@@ -186,11 +186,13 @@ def calculate_overlap_coefficient_delta(times1_radians, times2_radians, estimato
     density2_interp = np.interp(grid, grid2, density2)
     
     if estimator == 'delta1':
-        # Δ1 = integral de min(f1, f2)
+        # Δ1 históricamente usa indicadoras, pero aquí aproximado con KDE
         overlap = simpson(np.minimum(density1_interp, density2_interp), grid)
     else:  # delta4
-        # Δ4 = integral de sqrt(f1 * f2) * 2
-        overlap = 2 * simpson(np.sqrt(density1_interp * density2_interp), grid)
+        # Δ4 (Ridout & Linkie) = integral del mínimo de f1 y f2 ajustado por KDE
+        # La fórmula anterior multiplicaba por 2 la integral de la raíz cuadrada (Coeficiente de Bhattacharyya modificado),
+        # lo cual era matemáticamente incorrecto y causaba que el valor excediera 1 y se truncara a 1.000.
+        overlap = simpson(np.minimum(density1_interp, density2_interp), grid)
     
     return min(overlap, 1.0)  # Asegurar que esté en [0, 1]
 
