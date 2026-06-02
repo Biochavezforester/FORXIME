@@ -300,12 +300,15 @@ def calculate_trap_nights(df):
     return trap_nights
 
 
-def format_species_dataframe(df):
+def display_dataframe(df, **kwargs):
     """
-    Aplica estilo (cursivas) a los nombres científicos en DataFrames para Streamlit
+    Muestra un DataFrame en Streamlit aplicando formato Markdown (cursivas)
+    a los nombres científicos.
     """
+    import streamlit as st
     if df is None or (isinstance(df, pd.DataFrame) and df.empty):
-        return df
+        st.dataframe(df, **kwargs)
+        return
         
     # Intentar importar is_scientific_name localmente
     try:
@@ -319,19 +322,17 @@ def format_species_dataframe(df):
             if len(words) >= 2 and words[0][0].isupper() and (words[1][0].isupper() or words[1][0].islower() or words[1].lower() in ['sp.', 'spp.']):
                 return True
             return False
-
-    def style_scientific(val):
-        if pd.notna(val) and is_scientific_name(str(val)):
-            return 'font-style: italic;'
-        return ''
-        
-    if isinstance(df, pd.DataFrame):
-        target_cols = [col for col in ['Especie', 'Especie_Categoria'] if col in df.columns]
-        if target_cols:
-            if hasattr(df.style, 'map'):
-                return df.style.map(style_scientific, subset=target_cols)
-            else:
-                return df.style.applymap(style_scientific, subset=target_cols)
+            
+    df_disp = df.copy()
+    col_config = kwargs.get('column_config', {})
+    target_cols = [col for col in ['Especie', 'Especie_Categoria'] if col in df_disp.columns]
+    
+    if target_cols:
+        for col in target_cols:
+            df_disp[col] = df_disp[col].apply(lambda x: f"*{x}*" if pd.notna(x) and is_scientific_name(str(x)) else x)
+            if col not in col_config:
+                col_config[col] = st.column_config.MarkdownColumn(col)
+        kwargs['column_config'] = col_config
                 
-    return df
+    st.dataframe(df_disp, **kwargs)
 
