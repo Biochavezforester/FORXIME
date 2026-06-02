@@ -299,7 +299,7 @@ class PDFReportGenerator:
         ser utilizados en publicaciones científicas, informes técnicos, y planes de manejo.<br/><br/>
         
         <b>Citación sugerida:</b><br/>
-        Chavez Gurrola, E.E. (2026). FORXIME/2: Plataforma de Análisis de Datos de Cámaras Trampa. 
+        Chavez Gurrola, E.E. (2026). FORXIME: Plataforma de Análisis de Datos de Cámaras Trampa. 
         Versión 2.0. [Software]. Disponible en: https://forxime2-0.streamlit.app/
         </para>
         """
