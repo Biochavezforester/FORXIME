@@ -299,6 +299,20 @@ def calculate_trap_nights(df):
     
     return trap_nights
 
+def to_italic_unicode(text):
+    """Convierte texto normal a caracteres Unicode matemáticos en cursiva"""
+    if not isinstance(text, str): return text
+    res = []
+    for c in text:
+        if 'a' <= c <= 'z':
+            if c == 'h': res.append('\u210E')
+            else: res.append(chr(0x1D44E + ord(c) - ord('a')))
+        elif 'A' <= c <= 'Z':
+            res.append(chr(0x1D434 + ord(c) - ord('A')))
+        else:
+            res.append(c)
+    return ''.join(res)
+
 
 def display_dataframe(df, **kwargs):
     """
@@ -325,20 +339,7 @@ def display_dataframe(df, **kwargs):
             
     df_disp = df.copy()
     target_cols = [col for col in ['Especie', 'Especie_Categoria'] if col in df_disp.columns]
-    
-    def to_italic_unicode(text):
-        if not isinstance(text, str): return text
-        res = []
-        for c in text:
-            if 'a' <= c <= 'z':
-                if c == 'h': res.append('\u210E')
-                else: res.append(chr(0x1D44E + ord(c) - ord('a')))
-            elif 'A' <= c <= 'Z':
-                res.append(chr(0x1D434 + ord(c) - ord('A')))
-            else:
-                res.append(c)
-        return ''.join(res)
-    
+
     if target_cols:
         for col in target_cols:
             df_disp[col] = df_disp[col].apply(lambda x: to_italic_unicode(str(x)) if pd.notna(x) and is_scientific_name(str(x)) else x)

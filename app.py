@@ -1149,7 +1149,8 @@ elif page == t('menu_results'):
                 
                 if grazing_recs:
                     for rec in grazing_recs:
-                        with st.expander(f"🔍 {rec['species']} - Prioridad: {rec['priority']}"):
+                        sp_disp = helpers.to_italic_unicode(rec['species']) if visualization.is_scientific_name(rec['species']) else rec['species']
+                        with st.expander(f"🔍 {sp_disp} - Prioridad: {rec['priority']}"):
                             st.markdown(rec['recommendation'])
                 else:
                     st.info("✅ No se detectaron depredadores de ganado en el área de estudio")
@@ -1250,7 +1251,8 @@ elif page == t('menu_results'):
                     st.subheader("🚨 Especies Prioritarias")
                     
                     for idx, row in high_priority.iterrows():
-                        with st.expander(f"🔴 {row['Especie']} - {row['Prioridad']}"):
+                        sp_disp = helpers.to_italic_unicode(row['Especie']) if visualization.is_scientific_name(row['Especie']) else row['Especie']
+                        with st.expander(f"🔴 {sp_disp} - {row['Prioridad']}"):
                             # Mostrar categorías de conservación
                             col1, col2, col3 = st.columns(3)
                             
@@ -1357,7 +1359,8 @@ elif page == t('menu_results'):
                 st.subheader("🎯 Recomendaciones de Cosecha Sostenible")
                 
                 for rec in hunting_plan['recommendations']:
-                    with st.expander(f"🦌 {rec['common_name']} ({rec['species']})"):
+                    sp_disp = helpers.to_italic_unicode(rec['species']) if visualization.is_scientific_name(rec['species']) else rec['species']
+                    with st.expander(f"🦌 {rec['common_name']} ({sp_disp})"):
                         col1, col2 = st.columns(2)
                         
                         with col1:
