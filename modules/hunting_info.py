@@ -212,7 +212,7 @@ Basado en las especies detectadas, se recomienda:
 **Especies aprovechables detectadas:**
 """
             for idx, row in game_species_df.iterrows():
-                plan['uma_recommendation'] += f"\n- {row['Nombre_Comun']} ({row['Especie']})"
+                plan['uma_recommendation'] += f"\n- {row['Nombre_Comun']} (*{row['Especie']}*)"
             
             plan['uma_recommendation'] += "\n\n**Nota:** La viabilidad de la UMA debe ser evaluada por especialistas considerando aspectos legales, ecológicos y económicos."
     
