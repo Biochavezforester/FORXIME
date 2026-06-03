@@ -1,5 +1,5 @@
 """
-FORXIME/2 - Plataforma de Análisis de Datos de Cámaras Trampa
+FORXIME - Plataforma de Análisis de Datos de Cámaras Trampa
 Desarrollado por: Biólogo Erick Elio Chavez Gurrola
 """
 
@@ -21,7 +21,7 @@ from utils.assets_base64 import LOGO_B64
 
 # Configuración de la página
 st.set_page_config(
-    page_title="FORXIME/2 - Análisis de Cámaras Trampa",
+    page_title="FORXIME - Análisis de Cámaras Trampa",
     page_icon="📷",
     layout="wide",
     initial_sidebar_state="expanded"
@@ -95,7 +95,7 @@ with st.sidebar:
         st.image(LOGO_B64, use_container_width=True)
     except:
         # Fallback a placeholder si falla
-        st.image("https://via.placeholder.com/200x100/2E7D32/FFFFFF?text=FORXIME/2", use_container_width=True)
+        st.image("https://via.placeholder.com/200x100/2E7D32/FFFFFF?text=FORXIME", use_container_width=True)
     
     # Selector de idioma
     language_options = {'Español': 'es', 'English': 'en'}
@@ -1549,7 +1549,7 @@ elif page == t('menu_instructions'):
     st.title(t('instructions_title'))
     
     st.markdown("""
-    ## 📖 Guía de Uso de FORXIME/2
+    ## 📖 Guía de Uso de FORXIME
     
     ### 1. Preparación de Datos
     
@@ -1650,7 +1650,7 @@ elif page == t('menu_donations'):
 st.markdown("---")
 st.markdown("""
 <div style='text-align: center; color: #666; padding: 1rem;'>
-    <p><strong>FORXIME/2</strong> - Plataforma de Análisis de Datos de Cámaras Trampa</p>
+    <p><strong>FORXIME</strong> - Plataforma de Análisis de Datos de Cámaras Trampa</p>
     <p>Desarrollado por Biólogo Erick Elio Chavez Gurrola | 2026</p>
     <p>
         <a href='https://orcid.org/0009-0007-7054-6999' target='_blank' style='color: #666; text-decoration: none; margin: 0 10px;'>
