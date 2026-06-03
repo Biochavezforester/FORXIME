@@ -232,6 +232,7 @@ def create_activity_pattern_plot(activity_data, species, plot_type='circular'):
         print(f"Error KDE: {e}")
         return None
 
+    species_disp = italics_scientific(species)
     fig = go.Figure()
 
     if plot_type == 'circular':
@@ -242,7 +243,7 @@ def create_activity_pattern_plot(activity_data, species, plot_type='circular'):
             r=density,
             theta=theta,
             fill='toself',
-            name=species,
+            name=species_disp,
             line=dict(color='#1f77b4', width=2)
         ))
         
@@ -263,7 +264,7 @@ def create_activity_pattern_plot(activity_data, species, plot_type='circular'):
                 )
             ),
             title=dict(
-                text=f'Patrón de Actividad Diario: {italics_scientific(species)}',
+                text=f'Patrón de Actividad Diario: {species_disp}',
                 x=0.5
             ),
             height=500, template='plotly_white'
@@ -274,7 +275,7 @@ def create_activity_pattern_plot(activity_data, species, plot_type='circular'):
             x=grid_hours, 
             y=density,
             fill='tozeroy',
-            name=species,
+            name=species_disp,
             line=dict(color='#ff7f0e', width=2)
         ))
         
@@ -283,7 +284,7 @@ def create_activity_pattern_plot(activity_data, species, plot_type='circular'):
         fig.add_vline(x=18, line_dash="dash", line_color="red", annotation_text="Atardecer")
         
         fig.update_layout(
-            title=f'Densidad de Actividad: {species}',
+            title=f'Densidad de Actividad: {species_disp}',
             xaxis_title='Hora del Día',
             yaxis_title='Densidad de Actividad',
             xaxis=dict(tickmode='linear', tick0=0, dtick=2, range=[0, 24]),
