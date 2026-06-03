@@ -22,7 +22,7 @@ def load_translations(language='es'):
         config_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 
                                    'config', 'translations.json')
         
-        with open(config_path, 'r', encoding='utf-8') as f:
+        with open(config_path, 'r', encoding='utf-8-sig') as f:
             translations = json.load(f)
         
         return translations.get(language, translations['es'])
