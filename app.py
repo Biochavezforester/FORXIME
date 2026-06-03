@@ -897,35 +897,35 @@ elif page == t('menu_results'):
                             sp2_disp = f"*{overlap_data['species2']}*" if visualization.is_scientific_name(overlap_data['species2']) else overlap_data['species2']
                             st.subheader(f"{sp1_disp} vs {sp2_disp}")
                         
-                        fig_overlap = visualization.create_temporal_overlap_plot(overlap_data)
-                        st.plotly_chart(fig_overlap, use_container_width=True)
-                        
-                        # Métricas
-                        col1, col2 = st.columns(2)
-                        
-                        ridout = overlap_data['ridout_linkie']
-                        kernel = overlap_data['kernel_overlap']
-                        
-                        col1.metric(
-                            "Coef. Ridout-Linkie (Δ)",
-                            f"{ridout['coefficient']:.3f}",
-                            help=f"IC 95%: [{ridout['ci_lower']:.3f}, {ridout['ci_upper']:.3f}]"
-                        )
-                        col2.metric(
-                            "Solapamiento KDE",
-                            f"{kernel['overlap_percentage']:.1f}%"
-                        )
-                        
-                        # Interpretación
-                        with st.expander("📖 Interpretación"):
-                            interp = interpretation.interpret_temporal_overlap(
-                                overlap_data,
-                                'general',
-                                st.session_state.language
+                            fig_overlap = visualization.create_temporal_overlap_plot(overlap_data)
+                            st.plotly_chart(fig_overlap, use_container_width=True)
+                            
+                            # Métricas
+                            col1, col2 = st.columns(2)
+                            
+                            ridout = overlap_data['ridout_linkie']
+                            kernel = overlap_data['kernel_overlap']
+                            
+                            col1.metric(
+                                "Coef. Ridout-Linkie (Δ)",
+                                f"{ridout['coefficient']:.3f}",
+                                help=f"IC 95%: [{ridout['ci_lower']:.3f}, {ridout['ci_upper']:.3f}]"
                             )
-                            st.markdown(interp)
-                        
-                        st.markdown("---")
+                            col2.metric(
+                                "Solapamiento KDE",
+                                f"{kernel['overlap_percentage']:.1f}%"
+                            )
+                            
+                            # Interpretación
+                            with st.expander("📖 Interpretación"):
+                                interp = interpretation.interpret_temporal_overlap(
+                                    overlap_data,
+                                    'general',
+                                    st.session_state.language
+                                )
+                                st.markdown(interp)
+                            
+                            st.markdown("---")
                 else:
                     st.info("👆 Selecciona especies y haz clic en 'Calcular Solapamiento' para ver los resultados")
             else:
