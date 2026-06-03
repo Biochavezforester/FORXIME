@@ -1,4 +1,4 @@
-# FORXIME/2 🐆📷 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19425714.svg)](https://doi.org/10.5281/zenodo.19425714)
+﻿# FORXIME 🐆📷 [![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.19425714.svg)](https://doi.org/10.5281/zenodo.19425714)
 
 **Plataforma Profesional de Análisis de Datos de Cámaras Trampa**
 
@@ -8,7 +8,7 @@ Desarrollado por: **Biólogo Erick Elio Chavez Gurrola**
 
 ## 📋 Descripción
 
-FORXIME/2 es una plataforma web completa y profesional para el análisis estadístico y ecológico de datos de cámaras trampa (fototrampeo). Diseñada para biólogos, ecólogos e investigadores de vida silvestre, esta herramienta permite procesar datos de cámaras trampa, realizar análisis estadísticos avanzados, evaluar patrones de actividad temporal, analizar variables ambientales y generar visualizaciones profesionales con interpretaciones automáticas.
+FORXIME es una plataforma web completa y profesional para el análisis estadístico y ecológico de datos de cámaras trampa (fototrampeo). Diseñada para biólogos, ecólogos e investigadores de vida silvestre, esta herramienta permite procesar datos de cámaras trampa, realizar análisis estadísticos avanzados, evaluar patrones de actividad temporal, analizar variables ambientales y generar visualizaciones profesionales con interpretaciones automáticas.
 
 ## ✨ Características Principales
 
@@ -230,7 +230,7 @@ Explora las pestañas de resultados:
 
 ## 🎓 Cómo Citar
 
-Si utilizas FORXIME/2 en tu investigación o informes técnicos, por favor cita el software de la siguiente manera:
+Si utilizas FORXIME en tu investigación o informes técnicos, por favor cita el software de la siguiente manera:
 
 **Formato sugerido:**
 > Chavez Gurrola, E. E. (2026). FORXIME: Plataforma de Análisis de Datos de Cámaras Trampa (Versión 2.0.0) [Software]. Disponible en https://github.com/Biochavezforester/FORXIME2, DOI: 10.5281/zenodo.19425714
@@ -327,4 +327,5 @@ Este proyecto está bajo la Licencia MIT. Ver archivo `LICENSE` para más detall
 
 ---
 
-**FORXIME/2** - Transformando datos de cámaras trampa en conocimiento científico 🐆🔬
+**FORXIME** - Transformando datos de cámaras trampa en conocimiento científico 🐆🔬
+

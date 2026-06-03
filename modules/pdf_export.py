@@ -1,5 +1,5 @@
-"""
-Módulo de exportación a PDF para FORXIME/2
+﻿"""
+Módulo de exportación a PDF para FORXIME
 Genera reportes profesionales completos listos para artículos científicos y planes de manejo
 """
 
@@ -47,7 +47,7 @@ def format_scientific_name(name):
     return f"<i>{name_clean}</i>"
 
 class PDFReportGenerator:
-    """Generador de reportes PDF profesionales para FORXIME/2"""
+    """Generador de reportes PDF profesionales para FORXIME"""
     
     def __init__(self, logo_path=None, low_res=False):
         self.logo_path = logo_path
@@ -203,7 +203,7 @@ class PDFReportGenerator:
         canvas.drawRightString(letter[0] - 0.5*inch, 0.5*inch, text)
         
         # Créditos en pie de página
-        canvas.drawString(0.5*inch, 0.5*inch, "FORXIME/2 - Plataforma de Análisis de Cámaras Trampa")
+        canvas.drawString(0.5*inch, 0.5*inch, "FORXIME - Plataforma de Análisis de Cámaras Trampa")
         
         canvas.restoreState()
     
@@ -256,7 +256,7 @@ class PDFReportGenerator:
         info_text = f"""
         <para alignment="center">
         <b>Fecha de generación:</b> {fecha}<br/>
-        <b>Plataforma:</b> FORXIME/2 [V9.0_PLATINUM_FINAL]<br/>
+        <b>Plataforma:</b> FORXIME [V9.0_PLATINUM_FINAL]<br/>
         <b>Versión:</b> 3.0 (Type-Safe & Image-Forced)
         </para>
         """
@@ -288,8 +288,8 @@ class PDFReportGenerator:
         Google, entrenadas específicamente para reconocer especies en ecosistemas complejos, garantizando 
         un alto rigor y eficiencia en el procesamiento de grandes volúmenes de datos.<br/><br/>
 
-        <b>Acerca de FORXIME/2:</b><br/>
-        FORXIME/2 (Fauna Observada y Registrada + Índices de Monitoreo Estadístico) es una plataforma 
+        <b>Acerca de FORXIME:</b><br/>
+        FORXIME (Fauna Observada y Registrada + Índices de Monitoreo Estadístico) es una plataforma 
         desarrollada para facilitar el análisis estadístico de los datos procesados por TANIA. La plataforma 
         implementa las mejores prácticas científicas y estadísticas disponibles para el estudio de 
         biodiversidad, patrones de actividad temporal, y evaluación de impacto antropogénico.<br/><br/>
@@ -750,7 +750,7 @@ class PDFReportGenerator:
         especializado en la discriminación taxonómica precisa de fauna silvestre, utilizando modelos de aprendizaje 
         profundo de alta resolución que garantizan la objetividad científica en la identificación de cada registro.
         <br/><br/>
-        <b>2. FORXIME/2 (Framework for Wildlife Monitoring and Statistics):</b> El sistema robusto de análisis 
+        <b>2. FORXIME (Framework for Wildlife Monitoring and Statistics):</b> El sistema robusto de análisis 
         espacio-temporal que integra modelos matemáticos complejos para la estimación de biodiversidad, 
         ocupación de sitios y densidades poblacionales, permitiendo transformar datos crudos en información accionable para la conservación.
         <br/><br/>
@@ -787,8 +787,8 @@ class PDFReportGenerator:
         Google, entrenadas específicamente para la identificación de fauna. Este proceso garantiza un nivel de 
         precisión sub-específica, reduciendo el error humano en la clasificación.
         <br/><br/>
-        <b>1.2 Análisis Estadístico (FORXIME/2):</b> Los datos fueron analizados mediante la suite de excelencia 
-        <i>FORXIME/2</i>, aplicando modelos de ocupación de Royle-Nichols (2003) y estimadores de biodiversidad de 
+        <b>1.2 Análisis Estadístico (FORXIME):</b> Los datos fueron analizados mediante la suite de excelencia 
+        <i>FORXIME</i>, aplicando modelos de ocupación de Royle-Nichols (2003) y estimadores de biodiversidad de 
         Chao (1984). Se empleó un intervalo mínimo de 30 minutos para definir <b>Eventos Independientes</b>, 
         asegurando la independencia estadística de las muestras (O'Brien et al. 2003, 2010).
         </para>
@@ -836,7 +836,7 @@ class PDFReportGenerator:
         fototrampeo, asegurando que no hubo perturbación física a la fauna ni alteración del hábitat. No se utilizaron 
         cebos ni atrayentes que pudieran modificar el comportamiento natural de las especies registradas.
         <br/><br/>
-        <b>2.2 Control de Calidad (QC):</b> El motor <i>FORXIME/2</i> realizó una validación automática de la integridad 
+        <b>2.2 Control de Calidad (QC):</b> El motor <i>FORXIME</i> realizó una validación automática de la integridad 
         de los datos, incluyendo: (a) Verificación de marcas de tiempo en metadatos EXIF, (b) Eliminación de registros 
         duplicados por ráfaga, y (c) Evaluación de falsos disparos causados por vegetación o condiciones ambientales.
         </para>
@@ -1061,3 +1061,4 @@ def generate_pdf_report(results, wildlife_df, processed_df, language='es', logo_
     """
     generator = PDFReportGenerator(logo_path=logo_path, low_res=low_res)
     return generator.generate_complete_report(results, wildlife_df, processed_df, language, enabled_sections)
+

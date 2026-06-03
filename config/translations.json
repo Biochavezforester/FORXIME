@@ -1,10 +1,10 @@
-{
+﻿{
   "es": {
-    "app_title": "FORXIME/2 - Análisis de Datos de Cámaras Trampa",
+    "app_title": "FORXIME - Análisis de Datos de Cámaras Trampa",
     "developer": "Desarrollado por: Biólogo Erick Elio Chavez Gurrola",
-    "welcome_title": "Bienvenido a FORXIME/2",
+    "welcome_title": "Bienvenido a FORXIME",
     "welcome_subtitle": "Plataforma Profesional de Análisis de Datos de Cámaras Trampa",
-    "welcome_description": "FORXIME/2 es una herramienta completa para el análisis estadístico y ecológico de datos de fototrampeo. Esta plataforma le permite procesar datos de cámaras trampa, realizar análisis estadísticos avanzados, evaluar patrones de actividad temporal, analizar variables ambientales y generar visualizaciones profesionales con interpretaciones automáticas.",
+    "welcome_description": "FORXIME es una herramienta completa para el análisis estadístico y ecológico de datos de fototrampeo. Esta plataforma le permite procesar datos de cámaras trampa, realizar análisis estadísticos avanzados, evaluar patrones de actividad temporal, analizar variables ambientales y generar visualizaciones profesionales con interpretaciones automáticas.",
     "menu_home": "🏠 Inicio",
     "menu_process": "📊 Procesar Datos",
     "menu_results": "📈 Resultados",
@@ -64,7 +64,7 @@
     "interpretation": "Interpretación",
     "export_results": "Exportar Resultados",
     "instructions_title": "Instrucciones de Uso",
-    "donations_title": "Apoya el Desarrollo de FORXIME/2",
+    "donations_title": "Apoya el Desarrollo de FORXIME",
     "donations_description": "Si esta plataforma ha sido útil para tu investigación, considera hacer una donación para apoyar su desarrollo continuo y mantenimiento.",
     "donation_mexico": "Donaciones desde México (BBVA)",
     "donation_international": "Donaciones Internacionales (PayPal)",
@@ -77,11 +77,11 @@
     "cathemeral": "Catémero"
   },
   "en": {
-    "app_title": "FORXIME/2 - Camera Trap Data Analysis",
+    "app_title": "FORXIME - Camera Trap Data Analysis",
     "developer": "Developed by: Biologist Erick Elio Chavez Gurrola",
-    "welcome_title": "Welcome to FORXIME/2",
+    "welcome_title": "Welcome to FORXIME",
     "welcome_subtitle": "Professional Camera Trap Data Analysis Platform",
-    "welcome_description": "FORXIME/2 is a comprehensive tool for statistical and ecological analysis of camera trap data. This platform allows you to process camera trap data, perform advanced statistical analyses, evaluate temporal activity patterns, analyze environmental variables, and generate professional visualizations with automatic interpretations.",
+    "welcome_description": "FORXIME is a comprehensive tool for statistical and ecological analysis of camera trap data. This platform allows you to process camera trap data, perform advanced statistical analyses, evaluate temporal activity patterns, analyze environmental variables, and generate professional visualizations with automatic interpretations.",
     "menu_home": "🏠 Home",
     "menu_process": "📊 Process Data",
     "menu_results": "📈 Results",
@@ -141,7 +141,7 @@
     "interpretation": "Interpretation",
     "export_results": "Export Results",
     "instructions_title": "User Instructions",
-    "donations_title": "Support FORXIME/2 Development",
+    "donations_title": "Support FORXIME Development",
     "donations_description": "If this platform has been useful for your research, please consider making a donation to support its continued development and maintenance.",
     "donation_mexico": "Donations from Mexico (BBVA)",
     "donation_international": "International Donations (PayPal)",
@@ -154,3 +154,4 @@
     "cathemeral": "Cathemeral"
   }
 }
+

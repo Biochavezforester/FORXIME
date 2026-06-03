@@ -1,4 +1,4 @@
-import streamlit as st
+﻿import streamlit as st
 import json
 import os
 import pandas as pd
@@ -23,7 +23,7 @@ def save_taxonomy_map(data, path):
 def render_taxonomy_manager():
     st.title("🏷️ Gestor de Taxonomía")
     st.markdown("""
-    Aquí puedes personalizar cómo FORXIME/2 nombra a las especies. 
+    Aquí puedes personalizar cómo FORXIME nombra a las especies. 
     - **Traducción**: Cambia el nombre científico a Español.
     - **Unificación**: Asigna el mismo nombre común a diferentes entradas científicas para agruparlas.
     """)
@@ -79,3 +79,4 @@ def render_taxonomy_manager():
                 current_map[new_k] = new_v
                 save_taxonomy_map(current_map, map_path)
                 st.rerun()
+

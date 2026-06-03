@@ -1,5 +1,5 @@
-"""
-Secciones adicionales para el módulo PDF de FORXIME/2
+﻿"""
+Secciones adicionales para el módulo PDF de FORXIME
 Este archivo contiene las implementaciones de las secciones faltantes
 """
 
@@ -640,7 +640,7 @@ def add_temporal_activity_charts_section(story, results, wildlife_df, styles):
     
     nota_forxime = """
     <para alignment="justify">
-    <i><b>Nota de Análisis de Solapamiento Temporal:</b> Para evaluar posibles interacciones de competencia, evasión o depredación, los análisis de solapamiento entre pares de especies específicas pueden realizarse de manera interactiva a través del módulo de Patrones Temporales en FORXIME/2 (versión en vivo), donde podrá calcular los coeficientes de Ridout-Linkie.</i>
+    <i><b>Nota de Análisis de Solapamiento Temporal:</b> Para evaluar posibles interacciones de competencia, evasión o depredación, los análisis de solapamiento entre pares de especies específicas pueden realizarse de manera interactiva a través del módulo de Patrones Temporales en FORXIME (versión en vivo), donde podrá calcular los coeficientes de Ridout-Linkie.</i>
     </para>
     """
     story.append(KeepTogether([
@@ -944,4 +944,5 @@ def add_species_fact_sheets(story, results, styles):
         story.append(Spacer(1, 0.15*inch))
         
     return story
+
 
