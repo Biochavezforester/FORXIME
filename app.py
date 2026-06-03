@@ -866,29 +866,36 @@ elif page == t('menu_results'):
                                 
                                 # Store in session state
                                 st.session_state.on_demand_overlaps = overlap_results
+                                st.session_state.on_demand_overlap_errors = overlap_errors
                                 progress_container.empty()
                                 
                                 if overlap_results:
                                     st.success(f"✅ Se calcularon {len(overlap_results)} solapamientos exitosamente.")
                                 
-                                if overlap_errors:
-                                    with st.expander(f"⚠️ {len(overlap_errors)} solapamientos no pudieron calcularse", expanded=True):
-                                        for err in overlap_errors:
-                                            st.warning(err)
                     else:
                         st.warning("⚠️ Selecciona al menos 2 especies")
                 
                 st.markdown("---")
                 
-                # Display results if available
-                if hasattr(st.session_state, 'on_demand_overlaps') and st.session_state.on_demand_overlaps:
+                # Display results and errors if available
+                has_results = hasattr(st.session_state, 'on_demand_overlaps') and st.session_state.on_demand_overlaps
+                has_errors = hasattr(st.session_state, 'on_demand_overlap_errors') and st.session_state.on_demand_overlap_errors
+                
+                if has_results or has_errors:
                     st.subheader("📊 Resultados de Solapamiento Temporal")
                     
-                    for overlap_data in st.session_state.on_demand_overlaps:
-                        # Format species names for subheader
-                        sp1_disp = f"*{overlap_data['species1']}*" if visualization.is_scientific_name(overlap_data['species1']) else overlap_data['species1']
-                        sp2_disp = f"*{overlap_data['species2']}*" if visualization.is_scientific_name(overlap_data['species2']) else overlap_data['species2']
-                        st.subheader(f"{sp1_disp} vs {sp2_disp}")
+                    # Mostrar errores persistentes primero
+                    if has_errors:
+                        with st.expander(f"⚠️ {len(st.session_state.on_demand_overlap_errors)} solapamientos omitidos por falta de datos", expanded=True):
+                            for err in st.session_state.on_demand_overlap_errors:
+                                st.warning(err)
+                                
+                    if has_results:
+                        for overlap_data in st.session_state.on_demand_overlaps:
+                            # Format species names for subheader
+                            sp1_disp = f"*{overlap_data['species1']}*" if visualization.is_scientific_name(overlap_data['species1']) else overlap_data['species1']
+                            sp2_disp = f"*{overlap_data['species2']}*" if visualization.is_scientific_name(overlap_data['species2']) else overlap_data['species2']
+                            st.subheader(f"{sp1_disp} vs {sp2_disp}")
                         
                         fig_overlap = visualization.create_temporal_overlap_plot(overlap_data)
                         st.plotly_chart(fig_overlap, use_container_width=True)
