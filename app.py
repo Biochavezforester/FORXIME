@@ -839,6 +839,7 @@ elif page == t('menu_results'):
                             with st.spinner("Calculando solapamiento temporal..."):
                                 # Calculate overlaps on demand
                                 overlap_results = []
+                                overlap_errors = []
                                 progress_container = st.empty()
                                 
                                 total_pairs = n_pairs
@@ -858,11 +859,22 @@ elif page == t('menu_results'):
                                         
                                         if overlap_result.get('success', False):
                                             overlap_results.append(overlap_result)
+                                        else:
+                                            # Guardar el mensaje de error para mostrarlo después
+                                            msg = overlap_result.get('message', 'Error desconocido')
+                                            overlap_errors.append(f"**{sp1} vs {sp2}**: {msg}")
                                 
                                 # Store in session state
                                 st.session_state.on_demand_overlaps = overlap_results
                                 progress_container.empty()
-                                st.success(f"✅ Se calcularon {len(overlap_results)} solapamientos")
+                                
+                                if overlap_results:
+                                    st.success(f"✅ Se calcularon {len(overlap_results)} solapamientos exitosamente.")
+                                
+                                if overlap_errors:
+                                    with st.expander(f"⚠️ {len(overlap_errors)} solapamientos no pudieron calcularse", expanded=True):
+                                        for err in overlap_errors:
+                                            st.warning(err)
                     else:
                         st.warning("⚠️ Selecciona al menos 2 especies")
                 
