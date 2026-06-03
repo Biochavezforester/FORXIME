@@ -24,17 +24,14 @@ THREATENED_SPECIES = {
     ],
     # Vulnerable (VU)
     'VU': [
-        'panthera onca', 'jaguar',
         'hippopotamus amphibius', 'hipopótamo',
-        'puma concolor', 'puma',
-        'leopardus pardalis', 'ocelote', 'ocelot',
         'tapirus terrestris', 'tapir sudamericano'
     ],
     # Casi Amenazada (NT)
     'NT': [
-        'panthera leo', 'león', 'lion',
-        'ursus americanus', 'oso negro',
-        'lynx rufus', 'lince rojo'
+        'panthera onca', 'jaguar',
+        'leopardus wiedii', 'tigrillo', 'margay',
+        'panthera leo', 'león', 'lion'
     ]
 }
 
