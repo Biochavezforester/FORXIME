@@ -95,13 +95,12 @@ NOM_059_SPECIES = {
         'spizaetus tyrannus', 'águila tirana',                       # A - correcto
         'harpia harpyja', 'harpía mayor', 'águila arpía',            # A - correcto en NOM-059
         'ctenosaura pectinata', 'iguana negra', 'iguana de roca',   # A - corregido (antes Pr)
-        'boa constrictor', 'boa'                                      # A - corregido (antes Pr)
+        'boa constrictor', 'boa',                                     # A - corregido (antes Pr)
+        'vulpes macrotis', 'zorra del desierto'                       # A - en NOM-059
     ],
     # Sujeta a protección especial (Pr)
     'Pr': [
-        'urocyon cinereoargenteus', 'zorra gris',                    # Pr - en NOM-059
-        'iguana iguana', 'iguana verde',                             # Pr - correcto
-        'meleagris gallopavo', 'guajolote silvestre', 'pavo salvaje' # Pr - en NOM-059
+        'iguana iguana', 'iguana verde'                              # Pr - correcto
         # Nota: Mephitis macroura NO aparece en NOM-059 (eliminada)
         # Nota: Didelphis virginiana NO aparece en NOM-059 (eliminada)
         # Nota: Procyon lotor NO aparece en NOM-059 (eliminada)
@@ -117,7 +116,6 @@ CITES_SPECIES = {
         'leopardus pardalis', 'ocelote',                      # Ap. I - correcto
         'leopardus wiedii', 'tigrillo', 'margay',             # Ap. I - correcto
         'herpailurus yagouaroundi', 'jaguarundi',             # Ap. I - correcto
-        'puma concolor', 'puma',                              # Ap. I (poblaciones neotropicales)
         'tapirus bairdii', 'tapir centroamericano', 'tapir',  # Ap. I - correcto
         'tapirus terrestris', 'tapir sudamericano',           # Ap. I - correcto
         'phocoena sinus', 'vaquita marina', 'vaquita',       # Ap. I - correcto
@@ -174,7 +172,7 @@ BIOGEOGRAPHIC_STATUS = {
     'invasive': [
         'sus scrofa', 'jabalí europeo', 'cerdo asilvestrado',
         'felis catus', 'gato doméstico', 'gato feral',
-        'canis familiaris', 'perro doméstico', 'perro feral'
+        'canis familiaris', 'canis lupus familiaris', 'perro doméstico', 'perro feral', 'perro'
     ],
     # Exóticas (introducidas)
     'exotic': [
@@ -190,7 +188,7 @@ EXCLUDED_FROM_CONSERVATION = [
     'homo sapiens', 'humano', 'human', 'persona',
     'bos taurus', 'vaca', 'ganado', 'bovino', 'cow',
     'equus caballus', 'caballo', 'horse', 'equino', 'yegua',
-    'canis familiaris', 'perro doméstico', 'perro feral',
+    'canis familiaris', 'canis lupus familiaris', 'perro doméstico', 'perro feral', 'perro',
     'felis catus', 'gato doméstico', 'gato feral',
     'sus scrofa domesticus', 'cerdo doméstico', 'puerco',
     'ovis aries', 'oveja', 'borrego',
