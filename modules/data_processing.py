@@ -297,14 +297,6 @@ def filter_wildlife_only(df):
     non_wildlife = identify_non_wildlife(df)
     wildlife_df = df[~df.index.isin(non_wildlife.index)].copy()
     
-    # Aplicar también el filtro estricto de especies excluidas (taxones superiores, nombres comunes sin binomial, etc.)
-    # Se importa aquí localmente para evitar dependencias circulares
-    from modules.species_assessment import is_excluded_species
-    
-    if 'Especie_Categoria' in wildlife_df.columns and not wildlife_df.empty:
-        valid_mask = ~wildlife_df['Especie_Categoria'].apply(is_excluded_species)
-        wildlife_df = wildlife_df[valid_mask].copy()
-    
     return wildlife_df
 
 
