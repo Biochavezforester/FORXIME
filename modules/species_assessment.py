@@ -277,8 +277,11 @@ def is_higher_taxon(species_name):
 def has_valid_scientific_name(species_name):
     """
     Valida si el nombre cumple con formato binomial científico.
-    Requiere al menos: Genus (Mayúscula + letras) + epithet (minúsculas).
-    Excluye taxones superiores y nombres comunes conocidos.
+    Estrategia: valida el formato binomial PRIMERO.
+    Si pasa la validación (Género + epíteto), se acepta aunque el género
+    coincida con un nombre común (ej. 'Puma concolor', 'Boa constrictor').
+    Solo se aplica la lista COMMON_NAMES_ONLY para rechazar nombres de una
+    sola palabra o frases sin formato binomial.
     """
     import re
     if not species_name or not isinstance(species_name, str):
@@ -287,37 +290,39 @@ def has_valid_scientific_name(species_name):
     name = species_name.strip()
     name_lower = name.lower()
 
-    # Excluir taxones superiores (is_higher_taxon ya definida arriba)
+    # 1. Taxones superiores conocidos siempre se rechazan
     if is_higher_taxon(name):
         return False
 
-    # Excluir nombres comunes conocidos
-    for common in COMMON_NAMES_ONLY:
-        if name_lower == common or name_lower.startswith(common + ' ') or name_lower.endswith(' ' + common):
-            return False
-
-    # Limpiar texto entre paréntesis
+    # 2. Limpiar paréntesis y evaluar palabras
     name_clean = re.sub(r'\s*\(.*?\)', '', name).strip()
     words = [w for w in name_clean.split() if w]
 
+    # 3. Si tiene menos de 2 palabras: verificar contra nombres comunes
     if len(words) < 2:
-        return False
+        for common in COMMON_NAMES_ONLY:
+            if name_lower == common:
+                return False
+        return False  # nombre de 1 palabra sin formato binomial siempre se rechaza
 
     genus = words[0]
     epithet = words[1]
 
-    # Género: empieza con mayúscula, solo letras latínas
+    # 4. Validar formato binomial estricto
+    #    Género: empieza con mayúscula, solo letras latínas
     if not re.match(r'^[A-Z][a-z]+$', genus):
         return False
 
-    # Epíteto: solo letras minúsculas
+    #    Epíteto: solo letras minúsculas
     if not re.match(r'^[a-z]+$', epithet):
         return False
 
-    # Longitud mínima razonable
+    #    Longitud mínima razonable
     if len(genus) < 3 or len(epithet) < 3:
         return False
 
+    # 5. Si pasa la validación binomial, se acepta aunque el género
+    #    coincida con un nombre común (Puma, Boa, Tapir, etc.)
     return True
 
 
@@ -620,6 +625,12 @@ def generate_conservation_priorities_report(df, language='es'):
         cites_status = assess_cites_status(species)
         biogeo_status = assess_biogeographic_status(species)
         
+        # Cálculo de abundancia relativa para incluir en reporte
+        species_data = df[df['Especie_Categoria'] == species]
+        total_events = species_data['Eventos_Independientes'].sum() if 'Eventos_Independientes' in df.columns else 0
+        all_events = df['Eventos_Independientes'].sum() if 'Eventos_Independientes' in df.columns else 1
+        relative_abundance = total_events / all_events if all_events > 0 else 0
+
         priorities.append({
             'Especie': species,
             'Categoria_IUCN': score_data['iucn_category'],
@@ -627,6 +638,7 @@ def generate_conservation_priorities_report(df, language='es'):
             'CITES': score_data.get('cites_status', 'No listada'),
             'Estatus_Biogeografico': get_biogeographic_description(biogeo_status, language),
             'Ocupacion': f"{score_data['occupancy']:.2%}",
+            'Abundancia_Relativa': f"{relative_abundance:.2%}",
             'Especie_Clave': 'Sí' if score_data['keystone_species'] > 0 else 'No',
             'Puntaje_Total': score_data['total_score'],
             'Prioridad': score_data['priority_level']
