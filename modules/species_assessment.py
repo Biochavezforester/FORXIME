@@ -313,6 +313,7 @@ def assess_cites_status(species_name):
     """
     Evalúa el estado según los Apéndices CITES.
     Retorna 'No determinable' si el nombre no corresponde a una especie.
+    Retorna 'No listada' si es especie válida pero no aparece en ningún apéndice.
     """
     if is_higher_taxon(species_name):
         return 'No determinable'
@@ -323,7 +324,7 @@ def assess_cites_status(species_name):
         if any(sp in species_lower for sp in species_list):
             return category
     
-    return None
+    return 'No listada'  # Especie válida pero no incluida en ningún apéndice CITES
 
 
 def assess_biogeographic_status(species_name):
@@ -427,87 +428,104 @@ def get_biogeographic_description(status, language='es'):
 
 def calculate_conservation_priority_score(df, species):
     """
-    Calcula puntaje de prioridad de conservación
+    Calcula puntaje de prioridad de conservación para una especie.
     
-    Args:
-        df: DataFrame con datos
-        species: Nombre de la especie
+    Metodología (total 100 puntos):
+      - NOM-059-SEMARNAT (40 pts): norma mexicana, máxima relevancia local
+      - CITES (20 pts): regulación internacional de comercio
+      - IUCN Red List (20 pts): contexto global
+      - Rareza local / ocupación (10 pts): rareza en el área de estudio
+      - Rol ecológico / especie clave (10 pts)
     
-    Returns:
-        dict: Puntaje y componentes
+    Una especie en P (NOM-059) siempre obtiene mínimo 40 puntos → Prioridad Media o superior.
     """
     species_data = df[df['Especie_Categoria'] == species]
-    
-    # Componentes del puntaje
     score_components = {}
-    
-    # 1. Estado de conservación (0-40 puntos)
-    status = assess_species_conservation_status(species)
-    status_scores = {'CR': 40, 'EN': 30, 'VU': 20, 'NT': 10, 'LC': 0}
-    score_components['conservation_status'] = status_scores.get(status, 0)
-    score_components['iucn_category'] = status
-    
-    # 2. Rareza (basado en ocupación) (0-30 puntos)
+
+    # ── 1. NOM-059-SEMARNAT (0-40 puntos) ─────────────────────────────────────
+    nom_status = assess_nom059_status(species)
+    nom_scores = {
+        'E':  40,   # Probablemente extinta en medio silvestre
+        'P':  40,   # En peligro de extinción
+        'A':  25,   # Amenazada
+        'Pr': 15,   # Sujeta a protección especial
+        'No determinable': 0,
+        None: 0
+    }
+    score_components['nom059_score'] = nom_scores.get(nom_status, 0)
+    score_components['nom059_status'] = nom_status if nom_status else 'No listada'
+
+    # ── 2. CITES (0-20 puntos) ─────────────────────────────────────────────────
+    cites_status = assess_cites_status(species)
+    cites_scores = {
+        'I':  20,   # Comercio internacional prohibido
+        'II': 10,   # Comercio regulado
+        'III': 5,   # Protección en país de origen
+        'No determinable': 0,
+        None: 0
+    }
+    score_components['cites_score'] = cites_scores.get(cites_status, 0)
+    score_components['cites_status'] = cites_status if cites_status and cites_status != 'No determinable' else 'No listada'
+
+    # ── 3. IUCN Red List (0-20 puntos) ─────────────────────────────────────────
+    iucn_status = assess_species_conservation_status(species)
+    iucn_scores = {
+        'CR': 20,
+        'EN': 16,
+        'VU': 10,
+        'NT':  5,
+        'LC':  0,
+        'No determinable': 0
+    }
+    score_components['iucn_score'] = iucn_scores.get(iucn_status, 0)
+    score_components['iucn_category'] = iucn_status
+
+    # ── 4. Rareza local: baja ocupación = mayor prioridad (0-10 puntos) ────────
     site_column = 'Sitio_Agrupado' if 'Sitio_Agrupado' in df.columns else 'Sitio'
     total_sites = df[site_column].nunique()
     sites_occupied = species_data[site_column].nunique()
     occupancy = sites_occupied / total_sites if total_sites > 0 else 0
-    
-    # Especies raras (baja ocupación) tienen mayor prioridad
+
     if occupancy < 0.2:
-        score_components['rarity'] = 30
-    elif occupancy < 0.4:
-        score_components['rarity'] = 20
-    elif occupancy < 0.6:
         score_components['rarity'] = 10
+    elif occupancy < 0.4:
+        score_components['rarity'] = 7
+    elif occupancy < 0.6:
+        score_components['rarity'] = 4
     else:
         score_components['rarity'] = 0
-    
     score_components['occupancy'] = occupancy
-    
-    # 3. Abundancia relativa (0-20 puntos)
-    total_events = species_data['Eventos_Independientes'].sum()
-    all_events = df['Eventos_Independientes'].sum()
-    relative_abundance = total_events / all_events if all_events > 0 else 0
-    
-    # Especies con baja abundancia tienen mayor prioridad
-    if relative_abundance < 0.05:
-        score_components['low_abundance'] = 20
-    elif relative_abundance < 0.10:
-        score_components['low_abundance'] = 10
-    else:
-        score_components['low_abundance'] = 0
-    
-    score_components['relative_abundance'] = relative_abundance
-    
-    # 4. Rol ecológico (0-10 puntos)
-    # Depredadores tope y especies clave
-    keystone_keywords = ['panthera', 'jaguar', 'puma', 'wolf', 'lobo', 'elephant', 'elefante', 'tapir']
+
+    # ── 5. Rol ecológico / especie clave (0-10 puntos) ─────────────────────────
+    keystone_keywords = [
+        'panthera', 'jaguar', 'puma', 'lobo', 'wolf', 'tapir', 'elefante',
+        'elephant', 'ocelote', 'leopardus', 'tigrillo', 'jaguarundi',
+        'ateles', 'alouatta', 'manatí', 'trichechus', 'vaquita'
+    ]
     is_keystone = any(kw in species.lower() for kw in keystone_keywords)
     score_components['keystone_species'] = 10 if is_keystone else 0
-    
-    # Puntaje total (0-100)
-    total_score = sum([
-        score_components['conservation_status'],
-        score_components['rarity'],
-        score_components['low_abundance'],
+
+    # ── Puntaje total (0-100) ──────────────────────────────────────────────────
+    total_score = (
+        score_components['nom059_score'] +
+        score_components['cites_score'] +
+        score_components['iucn_score'] +
+        score_components['rarity'] +
         score_components['keystone_species']
-    ])
-    
-    score_components['total_score'] = total_score
-    
-    # Clasificación de prioridad
-    if total_score >= 70:
+    )
+    score_components['total_score'] = min(total_score, 100)
+
+    # ── Clasificación de prioridad ─────────────────────────────────────────────
+    if total_score >= 65:
         priority = 'Crítica'
-    elif total_score >= 50:
+    elif total_score >= 45:
         priority = 'Alta'
-    elif total_score >= 30:
+    elif total_score >= 25:
         priority = 'Media'
     else:
         priority = 'Baja'
-    
+
     score_components['priority_level'] = priority
-    
     return score_components
 
 
@@ -538,11 +556,10 @@ def generate_conservation_priorities_report(df, language='es'):
         priorities.append({
             'Especie': species,
             'Categoria_IUCN': score_data['iucn_category'],
-            'NOM_059': get_nom059_description(nom059_status, language) if nom059_status else 'No listada',
-            'CITES': get_cites_description(cites_status, language),
+            'NOM_059': get_nom059_description(score_data.get('nom059_status'), language) if score_data.get('nom059_status') not in (None, 'No listada', 'No determinable') else score_data.get('nom059_status', 'No listada'),
+            'CITES': score_data.get('cites_status', 'No listada'),
             'Estatus_Biogeografico': get_biogeographic_description(biogeo_status, language),
             'Ocupacion': f"{score_data['occupancy']:.2%}",
-            'Abundancia_Relativa': f"{score_data['relative_abundance']:.2%}",
             'Especie_Clave': 'Sí' if score_data['keystone_species'] > 0 else 'No',
             'Puntaje_Total': score_data['total_score'],
             'Prioridad': score_data['priority_level']
