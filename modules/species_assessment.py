@@ -200,15 +200,104 @@ EXCLUDED_FROM_CONSERVATION = [
     'equus asinus', 'burro', 'asno', 'mula'
 ]
 
+# Lista de nombres comunes en español/inglés que NO son nombres científicos
+# Se ampliará automáticamente mediante la función has_valid_scientific_name()
+COMMON_NAMES_ONLY = [
+    # Mamíferos
+    'venado', 'ciervo', 'ardilla', 'rata', 'ratón', 'murcielago', 'muriélago',
+    'zorro', 'lobo', 'coyote', 'puma', 'gato', 'perro', 'caballo', 'vaca',
+    'toro', 'cerdo', 'jabalí', 'tejon', 'tejón', 'mapache', 'tlacuache',
+    'zarigüeya', 'armadillo', 'conejo', 'liebre', 'tapir', 'oso', 'puerco',
+    'tejon', 'nutria', 'marta', 'coмédor', 'comadreja', 'tejoncillo',
+    # Aves
+    'pajaro', 'pájaro', 'ave', 'halcon', 'halcón', 'aguililla', 'aguila', 'águila',
+    'buho', 'búcho', 'lechuza', 'loro', 'perico', 'tucán', 'tucan',
+    'zanate', 'zopilote', 'gaviota', 'pato', 'garza', 'pelicano', 'col ibri',
+    'cuervo', 'cojolite', 'faisán', 'faisan', 'codorniz', 'paloma', 'torcaza',
+    'chachalaca', 'pavo', 'guajolote', 'colibrí',
+    # Reptiles/Anfibios
+    'serpiente', 'vibora', 'víbora', 'cascabel', 'boa', 'iguana', 'lagartija',
+    'cocodrilo', 'tortuga', 'sapo', 'rana',
+    # Genéricos
+    'animal', 'mamifero', 'mamífero', 'reptil', 'anfibio', 'insecto',
+    'desconocido', 'sin identificar', 'no identificado', 'no determinado'
+]
+
+
+def has_valid_scientific_name(species_name):
+    """
+    Valida si el nombre cumple con el formato binomial de nomenclatura científica.
+    Un nombre científico válido debe:
+      1. Tener al menos 2 palabras (Género + epíteto específico)
+      2. Estar en latín (solo letras, guiones o puntos; sin acentos típicos del español
+         a menos que sea un nombre descriptivo latínizado)
+      3. No coincidir con nombres comunes conocidos
+    
+    Returns:
+        bool: True si parece nombre científico válido, False en caso contrario
+    """
+    import re
+    if not species_name or not isinstance(species_name, str):
+        return False
+    
+    name = species_name.strip()
+    name_lower = name.lower()
+    
+    # Excluir taxones superiores conocidos
+    if is_higher_taxon(name):
+        return False
+    
+    # Excluir si contiene solo nombre común conocido
+    for common in COMMON_NAMES_ONLY:
+        if name_lower == common or name_lower.startswith(common + ' ') or name_lower.endswith(' ' + common):
+            return False
+    
+    # Quitar texto entre paréntesis para evaluar el nombre limpio
+    name_clean = re.sub(r'\s*\(.*?\)', '', name).strip()
+    words = [w for w in name_clean.split() if w]
+    
+    # Debe tener al menos 2 palabras
+    if len(words) < 2:
+        return False
+    
+    # El género debe empezar con mayúscula y ser solo letras
+    genus = words[0]
+    if not genus[0].isupper():
+        return False
+    if not re.match(r'^[A-Z][a-z]+$', genus):
+        return False
+    
+    # El epíteto específico debe ser solo letras minúsculas
+    epithet = words[1]
+    if not re.match(r'^[a-z]+$', epithet):
+        return False
+    
+    # Longitud mínima razonable para un nombre válido
+    if len(genus) < 3 or len(epithet) < 3:
+        return False
+    
+    return True
+
+
 def is_excluded_species(species_name):
-    """Verifica si la especie es humano o animal doméstico para excluir de evaluaciones."""
+    """Verifica si la especie debe excluirse de evaluaciones de conservación.
+    Excluye: humanos, animales domésticos, taxones superiores y nombres no científicos."""
     species_lower = str(species_name).lower()
     
-    # Coincidencia exacta o palabra completa para evitar falsos positivos
+    # 1. Animales domésticos / humanos
     import re
     for ex_sp in EXCLUDED_FROM_CONSERVATION:
         if re.search(r'\b' + re.escape(ex_sp) + r'\b', species_lower):
             return True
+    
+    # 2. Taxones superiores (clados, órdenes, familias)
+    if is_higher_taxon(species_name):
+        return True
+    
+    # 3. Nombres comunes o sin nomenclatura binomial válida
+    if not has_valid_scientific_name(species_name):
+        return True
+    
     return False
 
 
