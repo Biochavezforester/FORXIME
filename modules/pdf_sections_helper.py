@@ -190,22 +190,49 @@ def add_conservation_section(story, results, styles):
     # Diccionario de estatus NOM-059 (Ejemplo ampliado para México)
     # Diccionario de estatus NOM-059 (Extendido y Normalizado)
     NOM_059_DB = {
+        # En peligro de extinción (P)
         'panthera onca': 'P (Peligro de extinción)', 'jaguar': 'P (Peligro de extinción)',
-        'puma concolor': 'Protección especial', 'puma': 'Protección especial',
         'leopardus pardalis': 'P (Peligro de extinción)', 'ocelote': 'P (Peligro de extinción)',
         'leopardus wiedii': 'P (Peligro de extinción)', 'tigrillo': 'P (Peligro de extinción)',
-        'lynx rufus': 'No listada (Cinegética)', 'gato montés': 'No listada (Cinegética)',
-        'nasua narica': 'No listada', 'coatí': 'No listada',
-        'procyon lotor': 'No listada', 'mapache': 'No listada',
-        'conepatus leuconotus': 'No listada', 'zorrillo': 'No listada',
-        'mephitis macroura': 'No listada',
-        'odocoileus virginianus': 'No listada (Cinegética)', 'venado cola blanca': 'No listada (Cinegética)',
-        'pecari tajacu': 'No listada (Cinegética)', 'pecarí de collar': 'No listada (Cinegética)',
+        'herpailurus yagouaroundi': 'P (Peligro de extinción)', 'jaguarundi': 'P (Peligro de extinción)',
+        'tapirus bairdii': 'P (Peligro de extinción)', 'tapir': 'P (Peligro de extinción)',
+        'trichechus manatus': 'P (Peligro de extinción)', 'manatí': 'P (Peligro de extinción)',
+        'ursus americanus': 'P (Peligro de extinción)', 'oso negro': 'P (Peligro de extinción)',
+        'ateles geoffroyi': 'P (Peligro de extinción)', 'mono araña': 'P (Peligro de extinción)',
+        'alouatta palliata': 'P (Peligro de extinción)', 'saraguato': 'P (Peligro de extinción)',
+        'tayassu pecari': 'P (Peligro de extinción)', 'pecarí de labios blancos': 'P (Peligro de extinción)',
+        'canis lupus baileyi': 'P (Peligro de extinción)', 'lobo mexicano': 'P (Peligro de extinción)',
+        'ara macao': 'P (Peligro de extinción)', 'guacamaya roja': 'P (Peligro de extinción)',
+        'phocoena sinus': 'P (Peligro de extinción)', 'vaquita marina': 'P (Peligro de extinción)',
+        'ambystoma mexicanum': 'P (Peligro de extinción)', 'ajolote': 'P (Peligro de extinción)',
+        'dermatemys mawii': 'P (Peligro de extinción)', 'tortuga blanca': 'P (Peligro de extinción)',
+        'chelonia mydas': 'P (Peligro de extinción)', 'tortuga verde': 'P (Peligro de extinción)',
+        'mazama temama': 'P (Peligro de extinción)', 'temazate': 'P (Peligro de extinción)',
+        'antilocapra americana': 'P (Peligro de extinción)', 'berrendo': 'P (Peligro de extinción)',
+        # Amenazada (A)
+        'aquila chrysaetos': 'A (Amenazada)', 'águila real': 'A (Amenazada)',
+        'crocodylus acutus': 'A (Amenazada)', 'cocodrilo de río': 'A (Amenazada)',
+        'crax rubra': 'A (Amenazada)', 'hocofaisán': 'A (Amenazada)',
         'ctenosaura pectinata': 'A (Amenazada)', 'iguana negra': 'A (Amenazada)',
-        'iguana': 'A (Amenazada)',
+        'boa constrictor': 'A (Amenazada)', 'boa': 'A (Amenazada)',
+        'harpia harpyja': 'A (Amenazada)', 'harpía': 'A (Amenazada)',
+        # Sujeta a protección especial (Pr)
+        'urocyon cinereoargenteus': 'Pr (Protección especial)', 'zorra gris': 'Pr (Protección especial)',
+        'iguana iguana': 'Pr (Protección especial)', 'iguana verde': 'Pr (Protección especial)',
+        'meleagris gallopavo': 'Pr (Protección especial)', 'guajolote silvestre': 'Pr (Protección especial)',
+        # No listadas en NOM-059
+        'puma concolor': 'No listada', 'puma': 'No listada',
+        'lynx rufus': 'No listada (cinegética)', 'gato montés': 'No listada (cinegética)',
+        'odocoileus virginianus': 'No listada (cinegética)', 'venado cola blanca': 'No listada (cinegética)',
+        'pecari tajacu': 'No listada (cinegética)', 'pecarí de collar': 'No listada (cinegética)',
+        'nasua narica': 'No listada', 'coatí': 'No listada', 'tejón': 'No listada',
+        'procyon lotor': 'No listada', 'mapache': 'No listada',
         'didelphis virginiana': 'No listada', 'tlacuache': 'No listada',
         'sciurus': 'No listada', 'ardilla': 'No listada',
-        'neotoma': 'No listada', 'rata de campo': 'No listada'
+        'neotoma': 'No listada', 'rata de campo': 'No listada',
+        'mephitis macroura': 'No listada', 'zorrillo': 'No listada',
+        'meleagris gallopavo': 'Pr (Protección especial)', 'guajolote': 'Pr (Protección especial)',
+        'canis latrans': 'No listada', 'coyote': 'No listada'
     }
 
     story.append(KeepTogether([

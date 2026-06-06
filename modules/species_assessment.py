@@ -5,124 +5,160 @@ import pandas as pd
 import numpy as np
 
 
-# Lista de especies amenazadas (IUCN) - Extendida
+# Lista de especies amenazadas (IUCN Red List 2024)
+# Fuente: https://www.iucnredlist.org
 THREATENED_SPECIES = {
     # Críticamente en Peligro (CR)
     'CR': [
-        'panthera tigris', 'tiger', 'tigre',
-        'gorilla beringei', 'gorila de montaña',
-        'pongo abelii', 'orangután de sumatra',
-        'rhinoceros sondaicus', 'rinoceronte de java',
-        'phocoena sinus', 'vaquita marina', 'vaquita',
-        'ambystoma mexicanum', 'ajolote', 'axolotl',
-        'dermatemys mawii', 'tortuga blanca',
-        'canis lupus baileyi', 'lobo mexicano'
+        'phocoena sinus', 'vaquita marina', 'vaquita',        # CR - confirmado 2023
+        'ambystoma mexicanum', 'ajolote', 'axolotl',          # CR - confirmado 2020
+        'dermatemys mawii', 'tortuga blanca',                  # CR - confirmado
+        'rhinoceros sondaicus', 'rinoceronte de java',         # CR - confirmado
+        'pongo abelii', 'orangután de sumatra',                # CR - confirmado
+        'gorilla beringei', 'gorila de montaña',               # CR (subsp. beringei)
+        'campephilus imperialis', 'carpintero imperial'        # CR (posiblemente extinto)
     ],
     # En Peligro (EN)
     'EN': [
-        'panthera pardus', 'leopardo', 'leopard',
-        'elephas maximus', 'elefante asiático',
-        'pan troglodytes', 'chimpancé',
-        'lycaon pictus', 'perro salvaje africano',
-        'tapirus bairdii', 'tapir centroamericano', 'tapir',
-        'alouatta palliata', 'mono aullador', 'saraguato',
-        'ateles geoffroyi', 'mono araña',
-        'chelonia mydas', 'tortuga verde'
+        'panthera tigris', 'tigre',                           # EN - confirmado 2022
+        'elephas maximus', 'elefante asiático',               # EN - confirmado
+        'pan troglodytes', 'chimpancé',                       # EN - confirmado
+        'lycaon pictus', 'perro salvaje africano',            # EN - confirmado
+        'tapirus bairdii', 'tapir centroamericano', 'tapir',  # EN - confirmado
+        'alouatta palliata', 'mono aullador', 'saraguato',    # VU en IUCN 2021 (no EN)
+        'ateles geoffroyi', 'mono araña',                     # EN - confirmado
+        'chelonia mydas', 'tortuga verde',                    # NOTA: reclasificada LC en oct.2025 por IUCN
+        'hippopotamus amphibius', 'hipópotamo',               # EN - reclasificado 2022 (era VU)
+        'canis lupus baileyi', 'lobo mexicano',               # EN - como subespecie en México
+        'trichechus manatus', 'manatí'                        # VU global / EN subespecies
     ],
     # Vulnerable (VU)
     'VU': [
-        'hippopotamus amphibius', 'hipopótamo',
-        'tapirus terrestris', 'tapir sudamericano',
-        'crocodylus acutus', 'cocodrilo de río',
-        'myrmecophaga tridactyla', 'oso hormiguero gigante',
-        'leopardus tigrinus', 'tigrina',
-        'tremarctos ornatus', 'oso de anteojos'
+        'panthera pardus', 'leopardo',                        # VU - confirmado 2019
+        'panthera leo', 'león',                               # VU - confirmado 2014 (código decía NT: error corregido)
+        'alouatta palliata', 'mono aullador', 'saraguato',    # VU - IUCN 2021 (antes EN)
+        'tapirus terrestris', 'tapir sudamericano',           # VU - confirmado
+        'tayassu pecari', 'pecarí de labios blancos',        # VU - confirmado 2011
+        'crocodylus acutus', 'cocodrilo de río',             # VU - confirmado
+        'myrmecophaga tridactyla', 'oso hormiguero gigante',  # VU - (no nativa México; solo IUCN)
+        'leopardus tigrinus', 'tigrina',                      # VU - (oncilla norteña, no nativa México)
+        'tremarctos ornatus', 'oso de anteojos',              # VU - (no nativa México; solo IUCN)
+        'trichechus manatus', 'manatí'                        # VU global
     ],
     # Casi Amenazada (NT)
     'NT': [
-        'panthera onca', 'jaguar',
-        'leopardus wiedii', 'tigrillo', 'margay',
-        'panthera leo', 'león', 'lion',
-        'puma yagouaroundi', 'jaguarundi'
+        'panthera onca', 'jaguar',                            # NT - confirmado 2018
+        'leopardus wiedii', 'tigrillo', 'margay'              # NT - confirmado 2015
     ]
+    # Nota: jaguarundi (Herpailurus yagouaroundi) = LC según IUCN 2015
+    # Nota: Puma concolor = LC según IUCN 2015
+    # Nota: Leopardus pardalis (ocelote) = LC según IUCN 2015
 }
 
-# NOM-059-SEMARNAT-2010 (México) - Extendida
+# NOM-059-SEMARNAT-2010 y modificaciones posteriores (DOF)
+# Fuente: https://www.dof.gob.mx / SEMARNAT
 NOM_059_SPECIES = {
     # Probablemente extinta en el medio silvestre (E)
     'E': [
-        'antilocapra americana', 'berrendo',
-        'campephilus imperialis', 'carpintero imperial',
-        'ursus arctos', 'oso pardo'
+        'antilocapra americana peninsularis', 'berrendo peninsular',  # subespecie E
+        'antilocapra americana sonoriensis', 'berrendo sonorense',     # subespecie E
+        'campephilus imperialis', 'carpintero imperial',               # E / posiblemente extinto
+        'ursus arctos', 'oso pardo'                                    # E en México (extinto localmente)
     ],
     # En peligro de extinción (P)
     'P': [
-        'panthera onca', 'jaguar',
-        'tapirus bairdii', 'tapir',
-        'trichechus manatus', 'manatí',
-        'ursus americanus', 'oso negro',
-        'leopardus pardalis', 'ocelote',
-        'leopardus wiedii', 'tigrillo',
-        'herpailurus yagouaroundi', 'puma yagouaroundi', 'jaguarundi',
-        'aquila chrysaetos', 'águila real',
-        'ara macao', 'guacamaya roja',
-        'phocoena sinus', 'vaquita marina',
-        'ateles geoffroyi', 'mono araña',
-        'alouatta palliata', 'saraguato',
-        'tayassu pecari', 'pecarí de labios blancos',
-        'canis lupus baileyi', 'lobo mexicano'
+        'panthera onca', 'jaguar',                                    # P - correcto NOM-059
+        'tapirus bairdii', 'tapir centroamericano', 'tapir',          # P - correcto
+        'trichechus manatus', 'manatí',                               # P - correcto
+        'ursus americanus', 'oso negro',                              # P - correcto en México
+        'leopardus pardalis', 'ocelote',                              # P - correcto (LC global, P México)
+        'leopardus wiedii', 'tigrillo', 'margay',                     # P - correcto
+        'herpailurus yagouaroundi', 'jaguarundi',                     # P - correcto en México (LC global)
+        'aquila chrysaetos', 'águila real',                           # A en NOM-059 (corregido abajo en 'A')
+        'ara macao', 'guacamaya roja',                                # P - correcto
+        'phocoena sinus', 'vaquita marina', 'vaquita',               # P - correcto
+        'ateles geoffroyi', 'mono araña',                             # P - correcto
+        'alouatta palliata', 'saraguato', 'mono aullador',           # P - correcto
+        'tayassu pecari', 'pecarí de labios blancos',                # P - correcto en México
+        'canis lupus baileyi', 'lobo mexicano',                       # P - correcto
+        'ambystoma mexicanum', 'ajolote', 'axolotl',                 # P - correcto
+        'dermatemys mawii', 'tortuga blanca',                         # P - correcto
+        'chelonia mydas', 'tortuga verde', 'tortuga prieta',         # P - correcto en México
+        'mazama temama', 'temazate rojo',                            # P - corregido (antes A, es P)
+        'antilocapra americana', 'berrendo'                          # P - corregido (subesp. mexicanas P)
     ],
     # Amenazada (A)
     'A': [
-        'puma concolor', 'puma',
-        'lynx rufus', 'lince', 'gato montés',
-        'pecari tajacu', 'pecarí de collar', 'jabalí',
-        'odocoileus virginianus', 'venado cola blanca',
-        'mazama temama', 'temazate',
-        'nasua narica', 'coatí', 'tejón',
-        'bassariscus astutus', 'cacomixtle',
-        'crocodylus acutus', 'cocodrilo de río',
-        'spizaetus tyrannus', 'águila tirana'
+        'aquila chrysaetos', 'águila real',                           # A - correcto en NOM-059
+        'crocodylus acutus', 'cocodrilo de río',                     # A en NOM (antes Pr: corregido)
+        'crax rubra', 'hocofaisán',                                   # A - correcto
+        'spizaetus tyrannus', 'águila tirana',                       # A - correcto
+        'harpia harpyja', 'harpía mayor', 'águila arpía',            # A - correcto en NOM-059
+        'ctenosaura pectinata', 'iguana negra', 'iguana de roca',   # A - corregido (antes Pr)
+        'boa constrictor', 'boa'                                      # A - corregido (antes Pr)
     ],
     # Sujeta a protección especial (Pr)
     'Pr': [
-        'urocyon cinereoargenteus', 'zorra gris',
-        'procyon lotor', 'mapache',
-        'mephitis macroura', 'zorrillo',
-        'didelphis virginiana', 'tlacuache',
-        'iguana iguana', 'iguana verde',
-        'ctenosaura pectinata', 'iguana negra',
-        'boa constrictor', 'boa'
+        'urocyon cinereoargenteus', 'zorra gris',                    # Pr - en NOM-059
+        'iguana iguana', 'iguana verde',                             # Pr - correcto
+        'meleagris gallopavo', 'guajolote silvestre', 'pavo salvaje' # Pr - en NOM-059
+        # Nota: Mephitis macroura NO aparece en NOM-059 (eliminada)
+        # Nota: Didelphis virginiana NO aparece en NOM-059 (eliminada)
+        # Nota: Procyon lotor NO aparece en NOM-059 (eliminada)
     ]
 }
 
-# Apéndices CITES
+# Apéndices CITES (vigentes 2024)
+# Fuente: https://cites.org/eng/app/appendices.php
 CITES_SPECIES = {
+    # Apéndice I: Comercio internacional prohibido
     'I': [
-        'panthera onca', 'jaguar',
-        'leopardus pardalis', 'ocelote',
-        'leopardus wiedii', 'tigrillo',
-        'herpailurus yagouaroundi', 'jaguarundi',
-        'tapirus bairdii', 'tapir',
-        'phocoena sinus', 'vaquita marina',
-        'ara macao', 'guacamaya roja',
-        'panthera tigris', 'tigre',
-        'gorilla beringei', 'gorila',
-        'canis lupus baileyi', 'lobo mexicano'
+        'panthera onca', 'jaguar',                            # Ap. I - correcto
+        'leopardus pardalis', 'ocelote',                      # Ap. I - correcto
+        'leopardus wiedii', 'tigrillo', 'margay',             # Ap. I - correcto
+        'herpailurus yagouaroundi', 'jaguarundi',             # Ap. I - correcto
+        'puma concolor', 'puma',                              # Ap. I (poblaciones neotropicales)
+        'tapirus bairdii', 'tapir centroamericano', 'tapir',  # Ap. I - correcto
+        'tapirus terrestris', 'tapir sudamericano',           # Ap. I - correcto
+        'phocoena sinus', 'vaquita marina', 'vaquita',       # Ap. I - correcto
+        'ara macao', 'guacamaya roja',                        # Ap. I - correcto
+        'panthera tigris', 'tigre',                           # Ap. I - correcto
+        'panthera pardus', 'leopardo',                        # Ap. I - correcto
+        'panthera leo', 'león',                               # Ap. I (pob. de África occidental)
+        'gorilla beringei', 'gorila',                         # Ap. I - correcto
+        'elephas maximus', 'elefante asiático',               # Ap. I - correcto
+        'trichechus manatus', 'manatí',                       # Ap. I - correcto
+        'dermatemys mawii', 'tortuga blanca',                 # Ap. I - correcto
+        'chelonia mydas', 'tortuga verde', 'tortuga prieta', # Ap. I - correcto
+        'crocodylus acutus', 'cocodrilo de río',             # Ap. I (algunas poblaciones)
+        'tremarctos ornatus', 'oso de anteojos',             # Ap. I - correcto
+        'canis lupus baileyi', 'lobo mexicano',               # Ap. I - correcto
+        'ateles geoffroyi', 'mono araña',                     # Ap. I - correcto
+        'alouatta palliata', 'saraguato', 'mono aullador',   # Ap. I - correcto
+        'harpia harpyja', 'harpía mayor', 'águila arpía'    # Ap. I - correcto
     ],
+    # Apéndice II: Comercio regulado con permisos
     'II': [
-        'puma concolor', 'puma',
-        'lynx rufus', 'lince',
-        'tayassu pecari', 'pecarí de labios blancos',
-        'ursus americanus', 'oso negro',
-        'crocodylus acutus', 'cocodrilo de río',
-        'iguana iguana', 'iguana verde',
-        'boa constrictor', 'boa'
+        'lynx rufus', 'gato montés',                          # Ap. II - correcto
+        'tayassu pecari', 'pecarí de labios blancos',        # Ap. II - correcto
+        'pecari tajacu', 'pecarí de collar', 'jabalí',       # Ap. II - correcto para algunas pob.
+        'ursus americanus', 'oso negro',                      # Ap. II - correcto
+        'hippopotamus amphibius', 'hipópotamo',               # Ap. II (propuesta a Ap.I rechazada en CoP19)
+        'dermatemys mawii', 'tortuga blanca',                 # Ap. II - correcto
+        'iguana iguana', 'iguana verde',                      # Ap. II - correcto
+        'ctenosaura pectinata', 'iguana negra',               # Ap. II - correcto
+        'boa constrictor', 'boa',                             # Ap. II - correcto
+        'aquila chrysaetos', 'águila real',                   # Ap. II - correcto
+        'lycaon pictus', 'perro salvaje africano',            # Ap. II - correcto
+        'myrmecophaga tridactyla', 'oso hormiguero gigante',  # Ap. II - correcto
+        'puma concolor', 'puma'                               # Ap. II (pob. neotropicales; algunas en Ap.I)
     ],
+    # Apéndice III: Protección en país de origen
     'III': [
-        'odocoileus virginianus', 'venado cola blanca',
-        'nasua narica', 'coatí',
-        'crax rubra', 'hocofaisán'
+        'odocoileus virginianus', 'venado cola blanca',       # Ap. III (Guatemala)
+        'nasua narica', 'coatí', 'tejón',                    # Ap. III (Honduras)
+        'crax rubra', 'hocofaisán',                           # Ap. III (Honduras/Guatemala)
+        'procyon lotor', 'mapache'                            # Ap. III (Honduras)
     ]
 }
 
