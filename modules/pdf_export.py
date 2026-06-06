@@ -1,4 +1,4 @@
-﻿"""
+"""
 Módulo de exportación a PDF para FORXIME
 Genera reportes profesionales completos listos para artículos científicos y planes de manejo
 """
@@ -36,14 +36,28 @@ def format_scientific_name(name):
     exclude = ['vacío', 'vacio', 'humano', 'desconocido', 'vehículo', 'otro', 'antropogénico', 'sin identificar', 'no identificado']
     if any(e in name.lower() for e in exclude):
         return name
-        
-    # Limpieza agresiva de nombres comunes entre paréntesis
+    
+    # Sanitizar caracteres problemáticos para ReportLab antes de procesar
+    name = name.encode('utf-8', errors='replace').decode('utf-8')
+    
+    # Limpieza de nombres comunes entre paréntesis
     name_clean = re.sub(r'\s*\(.*?\)', '', name).strip()
     
-    # Capitalizar solo la primera letra (Género especie)
+    # Capitalizar SOLO la primera letra del género (no usar .lower() en toda la cadena
+    # porque puede corromper el último carácter en ciertas combinaciones de encoding/font en ReportLab)
     if len(name_clean) > 2:
-        name_clean = name_clean[0].upper() + name_clean[1:].lower()
-        
+        # Separar en palabras y capitalizar solo la primera
+        parts = name_clean.split(' ')
+        if parts:
+            parts[0] = parts[0][0].upper() + parts[0][1:] if len(parts[0]) > 1 else parts[0].upper()
+            # Las demás palabras (epíteto específico, subespecie) van en minúsculas explícitas
+            for i in range(1, len(parts)):
+                parts[i] = parts[i].lower() if parts[i] else parts[i]
+            name_clean = ' '.join(parts)
+    
+    # Escapar caracteres especiales que puedan romper el XML de ReportLab
+    name_clean = name_clean.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+    
     return f"<i>{name_clean}</i>"
 
 class PDFReportGenerator:
