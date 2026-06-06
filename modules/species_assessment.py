@@ -224,85 +224,9 @@ COMMON_NAMES_ONLY = [
 ]
 
 
-def has_valid_scientific_name(species_name):
-    """
-    Valida si el nombre cumple con el formato binomial de nomenclatura científica.
-    Un nombre científico válido debe:
-      1. Tener al menos 2 palabras (Género + epíteto específico)
-      2. Estar en latín (solo letras, guiones o puntos; sin acentos típicos del español
-         a menos que sea un nombre descriptivo latínizado)
-      3. No coincidir con nombres comunes conocidos
-    
-    Returns:
-        bool: True si parece nombre científico válido, False en caso contrario
-    """
-    import re
-    if not species_name or not isinstance(species_name, str):
-        return False
-    
-    name = species_name.strip()
-    name_lower = name.lower()
-    
-    # Excluir taxones superiores conocidos
-    if is_higher_taxon(name):
-        return False
-    
-    # Excluir si contiene solo nombre común conocido
-    for common in COMMON_NAMES_ONLY:
-        if name_lower == common or name_lower.startswith(common + ' ') or name_lower.endswith(' ' + common):
-            return False
-    
-    # Quitar texto entre paréntesis para evaluar el nombre limpio
-    name_clean = re.sub(r'\s*\(.*?\)', '', name).strip()
-    words = [w for w in name_clean.split() if w]
-    
-    # Debe tener al menos 2 palabras
-    if len(words) < 2:
-        return False
-    
-    # El género debe empezar con mayúscula y ser solo letras
-    genus = words[0]
-    if not genus[0].isupper():
-        return False
-    if not re.match(r'^[A-Z][a-z]+$', genus):
-        return False
-    
-    # El epíteto específico debe ser solo letras minúsculas
-    epithet = words[1]
-    if not re.match(r'^[a-z]+$', epithet):
-        return False
-    
-    # Longitud mínima razonable para un nombre válido
-    if len(genus) < 3 or len(epithet) < 3:
-        return False
-    
-    return True
-
-
-def is_excluded_species(species_name):
-    """Verifica si la especie debe excluirse de evaluaciones de conservación.
-    Excluye: humanos, animales domésticos, taxones superiores y nombres no científicos."""
-    species_lower = str(species_name).lower()
-    
-    # 1. Animales domésticos / humanos
-    import re
-    for ex_sp in EXCLUDED_FROM_CONSERVATION:
-        if re.search(r'\b' + re.escape(ex_sp) + r'\b', species_lower):
-            return True
-    
-    # 2. Taxones superiores (clados, órdenes, familias)
-    if is_higher_taxon(species_name):
-        return True
-    
-    # 3. Nombres comunes o sin nomenclatura binomial válida
-    if not has_valid_scientific_name(species_name):
-        return True
-    
-    return False
-
-
-# Taxones superiores, clados y grupos no determinables a nivel de especie
-# No se puede asignar una categoría única de conservación a estos grupos
+# ─────────────────────────────────────────────────────────────────────────────
+# Taxones superiores (deben definirse ANTES de has_valid_scientific_name)
+# ─────────────────────────────────────────────────────────────────────────────
 HIGHER_TAXA = [
     # Clados / Superordenes de aves
     'neoaves', 'palaeognathae', 'galloanserae', 'neognathae',
@@ -323,7 +247,7 @@ HIGHER_TAXA = [
     'sciuridae', 'muridae', 'cricetidae', 'leporidae',
     'accipitridae', 'falconidae', 'tytonidae', 'strigidae',
     'colubridae', 'viperidae', 'boidae', 'pythonidae',
-    # Términos genéricos y no determinables
+    # Términos genéricos
     'sp.', 'spp.', 'sp', 'spp', 'indet', 'indeterminado', 'indeterminable',
     'desconocido', 'sin identificar', 'no identificado', 'no determinado',
     'ave', 'ave silvestre', 'mamifero', 'mamífero', 'reptil', 'anfibio',
@@ -334,35 +258,93 @@ HIGHER_TAXA = [
 
 def is_higher_taxon(species_name):
     """
-    Detecta si el nombre dado corresponde a un taxón superior a especie
-    (clase, orden, familia, clado) donde una categoría de conservación
-    no es determinable.
-    
-    Args:
-        species_name: Nombre a evaluar
-    Returns:
-        bool: True si es un taxón superior / no determinable
+    Detecta si el nombre corresponde a un taxón superior a especie
+    (clase, orden, familia, clado) donde la conservación no es determinable.
     """
     if not species_name or not isinstance(species_name, str):
         return False
-    
     name_lower = species_name.strip().lower()
-    
-    # Verificar contra lista de taxones superiores conocidos
     for taxon in HIGHER_TAXA:
         if name_lower == taxon or name_lower.startswith(taxon + ' '):
             return True
-    
-    # Heurística: los nombres de especie válidos tienen al menos dos palabras
-    # (género + epíteto), excepto nombres comunes conocidos.
-    # Si hay una sola palabra y no hay nombre común en paréntesis, es probable
-    # que sea un taxón superior o género solo.
+    # Una sola palabra (sin paréntesis) probablemente es género o taxón superior
     words = [w for w in name_lower.replace('(', '').replace(')', '').split() if w]
     if len(words) == 1 and len(name_lower) > 3:
-        # Una sola palabra sin paréntesis: probablemente no es especie
         return True
-    
     return False
+
+
+def has_valid_scientific_name(species_name):
+    """
+    Valida si el nombre cumple con formato binomial científico.
+    Requiere al menos: Genus (Mayúscula + letras) + epithet (minúsculas).
+    Excluye taxones superiores y nombres comunes conocidos.
+    """
+    import re
+    if not species_name or not isinstance(species_name, str):
+        return False
+
+    name = species_name.strip()
+    name_lower = name.lower()
+
+    # Excluir taxones superiores (is_higher_taxon ya definida arriba)
+    if is_higher_taxon(name):
+        return False
+
+    # Excluir nombres comunes conocidos
+    for common in COMMON_NAMES_ONLY:
+        if name_lower == common or name_lower.startswith(common + ' ') or name_lower.endswith(' ' + common):
+            return False
+
+    # Limpiar texto entre paréntesis
+    name_clean = re.sub(r'\s*\(.*?\)', '', name).strip()
+    words = [w for w in name_clean.split() if w]
+
+    if len(words) < 2:
+        return False
+
+    genus = words[0]
+    epithet = words[1]
+
+    # Género: empieza con mayúscula, solo letras latínas
+    if not re.match(r'^[A-Z][a-z]+$', genus):
+        return False
+
+    # Epíteto: solo letras minúsculas
+    if not re.match(r'^[a-z]+$', epithet):
+        return False
+
+    # Longitud mínima razonable
+    if len(genus) < 3 or len(epithet) < 3:
+        return False
+
+    return True
+
+
+def is_excluded_species(species_name):
+    """Excluye de evaluaciones: domésticos, taxones superiores y nombres no científicos."""
+    import re
+    species_lower = str(species_name).lower()
+
+    # 1. Domésticos / humanos
+    for ex_sp in EXCLUDED_FROM_CONSERVATION:
+        if re.search(r'\b' + re.escape(ex_sp) + r'\b', species_lower):
+            return True
+
+    # 2. Taxones superiores
+    if is_higher_taxon(species_name):
+        return True
+
+    # 3. Sin nomenclatura binomial válida (nombres comunes, géneros solos, etc.)
+    if not has_valid_scientific_name(species_name):
+        return True
+
+    return False
+
+
+
+
+
 
 
 def assess_species_conservation_status(species_name):
@@ -470,19 +452,15 @@ def get_nom059_description(category, language='es'):
 
 def get_cites_description(category, language='es'):
     """
-    Obtiene descripción de categoría CITES
-    
-    Args:
-        category: Apéndice CITES
-        language: Idioma
-    
-    Returns:
-        str: Descripción
+    Obtiene descripción de apéndice CITES.
+    Retorna 'No listada' para None, 'No listada' y 'No determinable'.
     """
-    if not category:
+    if not category or category in ('No listada', 'No determinable', 'none', 'None'):
         return 'No listada' if language == 'es' else 'Not listed'
-        
-    return f"Apéndice {category}" if language == 'es' else f"Appendix {category}"
+    if category in ('I', 'II', 'III'):
+        return f"Apéndice {category}" if language == 'es' else f"Appendix {category}"
+    # Cualquier otro valor no reconocido
+    return 'No listada' if language == 'es' else 'Not listed'
 
 
 def get_biogeographic_description(status, language='es'):
