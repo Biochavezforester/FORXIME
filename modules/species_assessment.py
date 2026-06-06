@@ -212,16 +212,78 @@ def is_excluded_species(species_name):
     return False
 
 
-def assess_species_conservation_status(species_name):
+# Taxones superiores, clados y grupos no determinables a nivel de especie
+# No se puede asignar una categoría única de conservación a estos grupos
+HIGHER_TAXA = [
+    # Clados / Superordenes de aves
+    'neoaves', 'palaeognathae', 'galloanserae', 'neognathae',
+    # Clases
+    'aves', 'mammalia', 'reptilia', 'amphibia', 'actinopterygii', 'chondrichthyes',
+    'insecta', 'arachnida', 'malacostraca',
+    # Órdenes comunes
+    'rodentia', 'carnivora', 'artiodactyla', 'chiroptera', 'primates',
+    'passeriformes', 'falconiformes', 'accipitriformes', 'strigiformes',
+    'galliformes', 'anseriformes', 'columbiformes', 'psittaciformes',
+    'piciformes', 'coraciiformes', 'apodiformes', 'caprimulgiformes',
+    'gruiformes', 'charadriiformes', 'pelecaniformes', 'suliformes',
+    'ciconiiformes', 'cathartiformes', 'tinamiformes', 'struthioniformes',
+    'squamata', 'testudines', 'crocodilia', 'anura', 'caudata',
+    # Familias
+    'felidae', 'canidae', 'mustelidae', 'procyonidae', 'ursidae',
+    'cervidae', 'bovidae', 'tayassuidae', 'tapiridae', 'didelphidae',
+    'sciuridae', 'muridae', 'cricetidae', 'leporidae',
+    'accipitridae', 'falconidae', 'tytonidae', 'strigidae',
+    'colubridae', 'viperidae', 'boidae', 'pythonidae',
+    # Términos genéricos y no determinables
+    'sp.', 'spp.', 'sp', 'spp', 'indet', 'indeterminado', 'indeterminable',
+    'desconocido', 'sin identificar', 'no identificado', 'no determinado',
+    'ave', 'ave silvestre', 'mamifero', 'mamífero', 'reptil', 'anfibio',
+    'roedor', 'ungulado', 'primate', 'rapaz', 'rapaz nocturna',
+    'carnivoro', 'carnívoro', 'herbivoro', 'herbívoro',
+]
+
+
+def is_higher_taxon(species_name):
     """
-    Evalúa el estado de conservación de una especie
+    Detecta si el nombre dado corresponde a un taxón superior a especie
+    (clase, orden, familia, clado) donde una categoría de conservación
+    no es determinable.
     
     Args:
-        species_name: Nombre de la especie
-    
+        species_name: Nombre a evaluar
     Returns:
-        str: Categoría IUCN o 'LC' (Preocupación Menor)
+        bool: True si es un taxón superior / no determinable
     """
+    if not species_name or not isinstance(species_name, str):
+        return False
+    
+    name_lower = species_name.strip().lower()
+    
+    # Verificar contra lista de taxones superiores conocidos
+    for taxon in HIGHER_TAXA:
+        if name_lower == taxon or name_lower.startswith(taxon + ' '):
+            return True
+    
+    # Heurística: los nombres de especie válidos tienen al menos dos palabras
+    # (género + epíteto), excepto nombres comunes conocidos.
+    # Si hay una sola palabra y no hay nombre común en paréntesis, es probable
+    # que sea un taxón superior o género solo.
+    words = [w for w in name_lower.replace('(', '').replace(')', '').split() if w]
+    if len(words) == 1 and len(name_lower) > 3:
+        # Una sola palabra sin paréntesis: probablemente no es especie
+        return True
+    
+    return False
+
+
+def assess_species_conservation_status(species_name):
+    """
+    Evalúa el estado de conservación de una especie (IUCN Red List).
+    Retorna 'No determinable' si el nombre no corresponde a una especie.
+    """
+    if is_higher_taxon(species_name):
+        return 'No determinable'
+    
     species_lower = species_name.lower()
     
     for category, species_list in THREATENED_SPECIES.items():
@@ -233,14 +295,12 @@ def assess_species_conservation_status(species_name):
 
 def assess_nom059_status(species_name):
     """
-    Evalúa el estado según NOM-059-SEMARNAT-2010
-    
-    Args:
-        species_name: Nombre de la especie
-    
-    Returns:
-        str: Categoría NOM-059 o None
+    Evalúa el estado según NOM-059-SEMARNAT-2010.
+    Retorna 'No determinable' si el nombre no corresponde a una especie.
     """
+    if is_higher_taxon(species_name):
+        return 'No determinable'
+    
     species_lower = species_name.lower()
     
     for category, species_list in NOM_059_SPECIES.items():
@@ -251,14 +311,12 @@ def assess_nom059_status(species_name):
 
 def assess_cites_status(species_name):
     """
-    Evalúa el estado según los Apéndices CITES
-    
-    Args:
-        species_name: Nombre de la especie
-    
-    Returns:
-        str: Apéndice CITES (I, II, III) o None
+    Evalúa el estado según los Apéndices CITES.
+    Retorna 'No determinable' si el nombre no corresponde a una especie.
     """
+    if is_higher_taxon(species_name):
+        return 'No determinable'
+    
     species_lower = species_name.lower()
     
     for category, species_list in CITES_SPECIES.items():
