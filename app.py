@@ -1287,6 +1287,7 @@ elif page == t('menu_results'):
                             
                             with col1:
                                 st.metric("Categoría IUCN", row['Categoria_IUCN'])
+                                st.metric("CITES", row.get('CITES', 'No listada'))
                                 st.metric("Ocupación", row['Ocupacion'])
                             
                             with col2:

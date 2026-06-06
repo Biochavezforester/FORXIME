@@ -5,14 +5,18 @@ import pandas as pd
 import numpy as np
 
 
-# Lista de especies amenazadas (IUCN) - Simplificada
+# Lista de especies amenazadas (IUCN) - Extendida
 THREATENED_SPECIES = {
     # Críticamente en Peligro (CR)
     'CR': [
         'panthera tigris', 'tiger', 'tigre',
         'gorilla beringei', 'gorila de montaña',
         'pongo abelii', 'orangután de sumatra',
-        'rhinoceros sondaicus', 'rinoceronte de java'
+        'rhinoceros sondaicus', 'rinoceronte de java',
+        'phocoena sinus', 'vaquita marina', 'vaquita',
+        'ambystoma mexicanum', 'ajolote', 'axolotl',
+        'dermatemys mawii', 'tortuga blanca',
+        'canis lupus baileyi', 'lobo mexicano'
     ],
     # En Peligro (EN)
     'EN': [
@@ -20,26 +24,36 @@ THREATENED_SPECIES = {
         'elephas maximus', 'elefante asiático',
         'pan troglodytes', 'chimpancé',
         'lycaon pictus', 'perro salvaje africano',
-        'tapirus bairdii', 'tapir centroamericano'
+        'tapirus bairdii', 'tapir centroamericano', 'tapir',
+        'alouatta palliata', 'mono aullador', 'saraguato',
+        'ateles geoffroyi', 'mono araña',
+        'chelonia mydas', 'tortuga verde'
     ],
     # Vulnerable (VU)
     'VU': [
         'hippopotamus amphibius', 'hipopótamo',
-        'tapirus terrestris', 'tapir sudamericano'
+        'tapirus terrestris', 'tapir sudamericano',
+        'crocodylus acutus', 'cocodrilo de río',
+        'myrmecophaga tridactyla', 'oso hormiguero gigante',
+        'leopardus tigrinus', 'tigrina',
+        'tremarctos ornatus', 'oso de anteojos'
     ],
     # Casi Amenazada (NT)
     'NT': [
         'panthera onca', 'jaguar',
         'leopardus wiedii', 'tigrillo', 'margay',
-        'panthera leo', 'león', 'lion'
+        'panthera leo', 'león', 'lion',
+        'puma yagouaroundi', 'jaguarundi'
     ]
 }
 
-# NOM-059-SEMARNAT-2010 (México)
+# NOM-059-SEMARNAT-2010 (México) - Extendida
 NOM_059_SPECIES = {
     # Probablemente extinta en el medio silvestre (E)
     'E': [
-        'antilocapra americana', 'berrendo'
+        'antilocapra americana', 'berrendo',
+        'campephilus imperialis', 'carpintero imperial',
+        'ursus arctos', 'oso pardo'
     ],
     # En peligro de extinción (P)
     'P': [
@@ -49,26 +63,66 @@ NOM_059_SPECIES = {
         'ursus americanus', 'oso negro',
         'leopardus pardalis', 'ocelote',
         'leopardus wiedii', 'tigrillo',
-        'herpailurus yagouaroundi', 'jaguarundi',
-        'aquila chrysaetos', 'águila real'
+        'herpailurus yagouaroundi', 'puma yagouaroundi', 'jaguarundi',
+        'aquila chrysaetos', 'águila real',
+        'ara macao', 'guacamaya roja',
+        'phocoena sinus', 'vaquita marina',
+        'ateles geoffroyi', 'mono araña',
+        'alouatta palliata', 'saraguato',
+        'tayassu pecari', 'pecarí de labios blancos',
+        'canis lupus baileyi', 'lobo mexicano'
     ],
     # Amenazada (A)
     'A': [
         'puma concolor', 'puma',
-        'lynx rufus', 'lince',
+        'lynx rufus', 'lince', 'gato montés',
         'pecari tajacu', 'pecarí de collar', 'jabalí',
-        'tayassu pecari', 'pecarí de labios blancos',
         'odocoileus virginianus', 'venado cola blanca',
         'mazama temama', 'temazate',
-        'nasua narica', 'coatí',
-        'bassariscus astutus', 'cacomixtle'
+        'nasua narica', 'coatí', 'tejón',
+        'bassariscus astutus', 'cacomixtle',
+        'crocodylus acutus', 'cocodrilo de río',
+        'spizaetus tyrannus', 'águila tirana'
     ],
     # Sujeta a protección especial (Pr)
     'Pr': [
         'urocyon cinereoargenteus', 'zorra gris',
         'procyon lotor', 'mapache',
         'mephitis macroura', 'zorrillo',
-        'didelphis virginiana', 'tlacuache'
+        'didelphis virginiana', 'tlacuache',
+        'iguana iguana', 'iguana verde',
+        'ctenosaura pectinata', 'iguana negra',
+        'boa constrictor', 'boa'
+    ]
+}
+
+# Apéndices CITES
+CITES_SPECIES = {
+    'I': [
+        'panthera onca', 'jaguar',
+        'leopardus pardalis', 'ocelote',
+        'leopardus wiedii', 'tigrillo',
+        'herpailurus yagouaroundi', 'jaguarundi',
+        'tapirus bairdii', 'tapir',
+        'phocoena sinus', 'vaquita marina',
+        'ara macao', 'guacamaya roja',
+        'panthera tigris', 'tigre',
+        'gorilla beringei', 'gorila',
+        'canis lupus baileyi', 'lobo mexicano'
+    ],
+    'II': [
+        'puma concolor', 'puma',
+        'lynx rufus', 'lince',
+        'tayassu pecari', 'pecarí de labios blancos',
+        'ursus americanus', 'oso negro',
+        'crocodylus acutus', 'cocodrilo de río',
+        'iguana iguana', 'iguana verde',
+        'boa constrictor', 'boa'
+    ],
+    'III': [
+        'odocoileus virginianus', 'venado cola blanca',
+        'nasua narica', 'coatí',
+        'crax rubra', 'hocofaisán'
     ]
 }
 
@@ -159,6 +213,24 @@ def assess_nom059_status(species_name):
     
     return None
 
+def assess_cites_status(species_name):
+    """
+    Evalúa el estado según los Apéndices CITES
+    
+    Args:
+        species_name: Nombre de la especie
+    
+    Returns:
+        str: Apéndice CITES (I, II, III) o None
+    """
+    species_lower = species_name.lower()
+    
+    for category, species_list in CITES_SPECIES.items():
+        if any(sp in species_lower for sp in species_list):
+            return category
+    
+    return None
+
 
 def assess_biogeographic_status(species_name):
     """
@@ -211,6 +283,22 @@ def get_nom059_description(category, language='es'):
         return descriptions_es.get(category, 'No listada')
     else:
         return descriptions_en.get(category, 'Not listed')
+
+def get_cites_description(category, language='es'):
+    """
+    Obtiene descripción de categoría CITES
+    
+    Args:
+        category: Apéndice CITES
+        language: Idioma
+    
+    Returns:
+        str: Descripción
+    """
+    if not category:
+        return 'No listada' if language == 'es' else 'Not listed'
+        
+    return f"Apéndice {category}" if language == 'es' else f"Appendix {category}"
 
 
 def get_biogeographic_description(status, language='es'):
@@ -350,12 +438,14 @@ def generate_conservation_priorities_report(df, language='es'):
         
         # Obtener clasificaciones adicionales
         nom059_status = assess_nom059_status(species)
+        cites_status = assess_cites_status(species)
         biogeo_status = assess_biogeographic_status(species)
         
         priorities.append({
             'Especie': species,
             'Categoria_IUCN': score_data['iucn_category'],
             'NOM_059': get_nom059_description(nom059_status, language) if nom059_status else 'No listada',
+            'CITES': get_cites_description(cites_status, language),
             'Estatus_Biogeografico': get_biogeographic_description(biogeo_status, language),
             'Ocupacion': f"{score_data['occupancy']:.2%}",
             'Abundancia_Relativa': f"{score_data['relative_abundance']:.2%}",
@@ -363,6 +453,7 @@ def generate_conservation_priorities_report(df, language='es'):
             'Puntaje_Total': score_data['total_score'],
             'Prioridad': score_data['priority_level']
         })
+
     
     priorities_df = pd.DataFrame(priorities).sort_values('Puntaje_Total', ascending=False)
     

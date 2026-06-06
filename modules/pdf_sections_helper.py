@@ -1,4 +1,4 @@
-﻿"""
+"""
 Secciones adicionales para el módulo PDF de FORXIME
 Este archivo contiene las implementaciones de las secciones faltantes
 """
@@ -218,18 +218,28 @@ def add_conservation_section(story, results, styles):
     if not conservation.empty:
         top_conservation = conservation
         
-        cons_data = [['Especie', 'Prioridad', 'NOM-059 / IUCN', 'Justificación']]
+        cons_data = [['Especie', 'Prioridad', 'Estatus\n(NOM/IUCN/CITES)', 'Justificación']]
         for _, row in top_conservation.iterrows():
             especie = str(row.get('Especie', ''))
             prioridad = str(row.get('Prioridad', ''))
             
-            # Obtener estatus NOM-059 con búsqueda flexible
-            nom_status = "No listada"
-            sp_clean = especie.lower().strip()
-            for key, val in NOM_059_DB.items():
-                if key in sp_clean or sp_clean in key:
-                    nom_status = val
-                    break
+            # Obtener estatus de las columnas (o fallback)
+            nom_status = str(row.get('NOM_059', 'No listada'))
+            iucn_status = str(row.get('Categoria_IUCN', 'LC'))
+            cites_status = str(row.get('CITES', 'No listada'))
+            
+            # Si en PDF se usa el propio dict (por compatibilidad)
+            if nom_status == 'No listada' or nom_status == 'nan':
+                sp_clean = especie.lower().strip()
+                for key, val in NOM_059_DB.items():
+                    if key in sp_clean or sp_clean in key:
+                        nom_status = val
+                        break
+            
+            # Combinar estatus
+            combined_status = f"NOM: {nom_status}\nIUCN: {iucn_status}"
+            if cites_status != 'No listada' and cites_status != 'nan':
+                combined_status += f"\nCITES: {cites_status}"
             
             # Generar justificación
             justificacion_original = str(row.get('Justificacion', ''))
@@ -247,9 +257,9 @@ def add_conservation_section(story, results, styles):
             from modules.pdf_export import format_scientific_name
             formatted_name = Paragraph(format_scientific_name(especie), styles['Normal'])
             
-            cons_data.append([formatted_name, prioridad, nom_status, justificacion])
+            cons_data.append([formatted_name, prioridad, combined_status, justificacion])
         
-        cons_table = Table(cons_data, colWidths=[1.8*inch, 0.9*inch, 1.3*inch, 2.5*inch])
+        cons_table = Table(cons_data, colWidths=[1.8*inch, 0.7*inch, 1.5*inch, 2.5*inch])
         cons_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2E7D32')),
             ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
