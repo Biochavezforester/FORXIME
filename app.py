@@ -116,7 +116,10 @@ with st.sidebar:
         t('menu_instructions'),
         t('menu_donations')
     ]
-    
+    if st.session_state.get("redirect_to_results", False):
+        st.session_state["navigation_menu"] = t('menu_results')
+        st.session_state.redirect_to_results = False
+        
     page = st.radio(t('menu_navigation'), menu_options, key="navigation_menu", label_visibility="collapsed")
 
 # Página de Inicio
@@ -540,7 +543,7 @@ elif page == t('menu_process'):
                 progress_bar.empty()
                 
                 st.success("✅ ¡Análisis completado! Redirigiendo a resultados...")
-                st.session_state["navigation_menu"] = t('menu_results')
+                st.session_state.redirect_to_results = True
                 if hasattr(st, 'rerun'):
                     st.rerun()
                 else:
