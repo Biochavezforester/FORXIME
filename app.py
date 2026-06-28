@@ -117,7 +117,7 @@ with st.sidebar:
         t('menu_donations')
     ]
     
-    page = st.radio(t('menu_navigation'), menu_options, label_visibility="collapsed")
+    page = st.radio(t('menu_navigation'), menu_options, key="navigation_menu", label_visibility="collapsed")
 
 # Página de Inicio
 if page == t('menu_home'):
@@ -539,7 +539,12 @@ elif page == t('menu_process'):
                 status_text.empty()
                 progress_bar.empty()
                 
-                st.success("✅ ¡Análisis completado! Ve a la sección 'Resultados' para ver los análisis.")
+                st.success("✅ ¡Análisis completado! Redirigiendo a resultados...")
+                st.session_state["navigation_menu"] = t('menu_results')
+                if hasattr(st, 'rerun'):
+                    st.rerun()
+                else:
+                    st.experimental_rerun()
                 
             except Exception as e:
                 progress_bar.empty()
