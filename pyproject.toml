@@ -1,0 +1,95 @@
+[build-system]
+requires = ["setuptools>=61.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "forxime"
+version = "2.0.2"
+description = "Plataforma de Análisis Estadístico y Ecológico de Datos de Cámaras Trampa"
+readme = "README.md"
+authors = [
+    { name = "Erick Elio Chavez Gurrola", email = "erickelio@gmail.com" }
+]
+license = { text = "MIT" }
+requires-python = ">=3.9"
+keywords = [
+    "mammalogy",
+    "camera-traps",
+    "biodiversity",
+    "ecology",
+    "wildlife-monitoring",
+    "temporal-overlap",
+    "occupancy-models",
+    "fototrampeo"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: GIS",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12"
+]
+dependencies = [
+    "streamlit>=1.30.0",
+    "pandas>=2.0.0",
+    "numpy>=1.24.0",
+    "scipy>=1.10.0",
+    "matplotlib>=3.7.0",
+    "seaborn>=0.12.0",
+    "plotly>=5.14.0",
+    "folium>=0.14.0",
+    "streamlit-folium>=0.11.0",
+    "openpyxl>=3.1.0",
+    "xlrd>=2.0.1",
+    "scikit-learn>=1.3.0",
+    "pyproj>=3.5.0",
+    "geopy>=2.3.0",
+    "requests>=2.31.0",
+    "astropy>=5.2.0",
+    "overpy>=0.6",
+    "utm>=0.7.0",
+    "reportlab>=4.0.0",
+    "kaleido>=0.2.1",
+    "Pillow>=10.0.0"
+]
+
+[project.optional-dependencies]
+test = [
+    "pytest>=7.4.0",
+    "pytest-mock>=3.11.0",
+    "pytest-cov>=4.1.0"
+]
+bayesian = [
+    "pymc>=5.0.0",
+    "arviz>=0.15.0"
+]
+
+[project.urls]
+Homepage = "https://github.com/Biochavezforester/FORXIME2"
+Documentation = "https://github.com/Biochavezforester/FORXIME2#readme"
+"Bug Tracker" = "https://github.com/Biochavezforester/FORXIME2/issues"
+"Source Code" = "https://github.com/Biochavezforester/FORXIME2"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+norecursedirs = [
+    "INSTALADORHABIL",
+    "venv",
+    ".git",
+    "__pycache__",
+    "build",
+    "dist"
+]
+addopts = "-v --tb=short"
+filterwarnings = [
+    "ignore::DeprecationWarning",
+    "ignore::UserWarning"
+]
